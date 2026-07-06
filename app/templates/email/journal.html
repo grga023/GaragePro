@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="sr">
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; color:#222; font-size:14px;">
+  <h2 style="margin:0 0 4px">{{ journal.period_label }} žurnal</h2>
+  <p style="margin:0 0 2px;color:#555">
+    {% if company and company.name %}{{ company.name }} — {% endif %}{{ journal.scope_label }}
+  </p>
+  <p style="margin:0 0 16px;color:#555">
+    Period: <strong>{{ journal.start | srdate }} — {{ journal.end | srdate }}</strong>
+  </p>
+
+  <table style="border-collapse:collapse;margin-bottom:16px">
+    <tr>
+      <td style="padding:6px 14px;background:#f0f0f0;border:1px solid #ddd">Servisa: <strong>{{ journal.totals.count }}</strong></td>
+      <td style="padding:6px 14px;background:#f0f0f0;border:1px solid #ddd">Promet: <strong>{{ journal.totals.revenue | currency }}</strong></td>
+      <td style="padding:6px 14px;background:#f0f0f0;border:1px solid #ddd">Rad: <strong>{{ journal.totals.labor | currency }}</strong></td>
+      <td style="padding:6px 14px;background:#e7f5e7;border:1px solid #ddd">Profit: <strong>{{ journal.totals.profit | currency }}</strong></td>
+    </tr>
+  </table>
+
+  {% if journal.by_worker %}
+  <h3 style="margin:0 0 6px">Po radnicima</h3>
+  <table style="border-collapse:collapse;width:100%;margin-bottom:16px">
+    <thead>
+      <tr style="background:#f0f0f0">
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Radnik</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Servisa</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Promet</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Rad</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Profit</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in journal.by_worker %}
+      <tr>
+        <td style="border:1px solid #ddd;padding:6px">{{ row.worker.full_name }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ row.totals.count }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ row.totals.revenue | currency }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ row.totals.labor | currency }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ row.totals.profit | currency }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <h3 style="margin:0 0 6px">Servisi</h3>
+  <table style="border-collapse:collapse;width:100%">
+    <thead>
+      <tr style="background:#f0f0f0">
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Datum</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Registracija</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Vlasnik</th>
+        {% if not journal.worker %}<th style="border:1px solid #ddd;padding:6px;text-align:left">Radnik</th>{% endif %}
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Delovi</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Rad</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Ukupno</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:right">Profit</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in journal.services %}
+      <tr>
+        <td style="border:1px solid #ddd;padding:6px">{{ s.date | srdate }}</td>
+        <td style="border:1px solid #ddd;padding:6px">{{ s.car.plate }}</td>
+        <td style="border:1px solid #ddd;padding:6px">{{ s.car.owner_name }}</td>
+        {% if not journal.worker %}<td style="border:1px solid #ddd;padding:6px">{{ s.worker.full_name }}</td>{% endif %}
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ s.parts_total_full | currency }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ s.labor_price | currency }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ s.total_full | currency }}</td>
+        <td style="border:1px solid #ddd;padding:6px;text-align:right">{{ s.total_profit | currency }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" style="border:1px solid #ddd;padding:10px;text-align:center;color:#888">Nema servisa u ovom periodu.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:20px;color:#999;font-size:12px">Automatski žurnal — Auto Servis aplikacija.</p>
+</body>
+</html>

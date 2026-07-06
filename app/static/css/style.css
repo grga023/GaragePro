@@ -1,0 +1,186 @@
+/* ══════════════════════════════════════════════════════════════
+   Auto Servis — Mobile-First Responsive Styles
+   ══════════════════════════════════════════════════════════════ */
+
+:root { --brand: #0d6efd; }
+
+/* ── Base ─────────────────────────────────────────────────── */
+[data-bs-theme="light"] body { background: #f4f6f9; }
+[data-bs-theme="dark"]  body { background: #14171a; }
+
+body { font-size: .9rem; }
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.navbar-brand { font-weight: 600; font-size: 1rem; }
+.navbar { padding-top: .4rem; padding-bottom: .4rem; }
+
+/* ── Cards ────────────────────────────────────────────────── */
+.card { box-shadow: 0 1px 3px rgba(0,0,0,.08); border-radius: .5rem; }
+.card-header { font-weight: 600; font-size: .9rem; padding: .5rem .75rem; }
+
+/* ── Stat cards ───────────────────────────────────────────── */
+.stat-card .display-6 { font-weight: 700; font-size: 1.6rem; }
+.stat-card .card-body { padding: .75rem .5rem; }
+.stat-card .text-muted { font-size: .75rem; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.table-sm td, .table-sm th { padding: .3rem .4rem; font-size: .82rem; }
+.money { text-align: right; white-space: nowrap; }
+
+/* ── Plate badge ──────────────────────────────────────────── */
+.plate-badge {
+  font-family: "Consolas", "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: 2px solid #222;
+  border-radius: .3rem;
+  padding: .05rem .35rem;
+  background: #fff;
+  color: #111;
+  font-size: .8rem;
+}
+
+/* ── Service type badges ──────────────────────────────────── */
+.badge-stype-popravke      { background-color: #dc3545; color: #fff; }
+.badge-stype-vulkanizerski { background-color: #198754; color: #fff; }
+.badge-stype-mali_servis   { background-color: #0d6efd; color: #fff; }
+.badge { font-size: .72rem; font-weight: 600; }
+
+/* ── Car photo ────────────────────────────────────────────── */
+.car-photo {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: .5rem;
+}
+
+/* ── Plate input ──────────────────────────────────────────── */
+.big-plate-input {
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* ── Filter bar ───────────────────────────────────────────── */
+.filter-bar .form-select,
+.filter-bar .form-control { font-size: .82rem; padding: .3rem .5rem; }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE (< 576px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 575.98px) {
+  body { font-size: .85rem; }
+
+  .container-fluid { padding-left: .5rem; padding-right: .5rem; }
+
+  /* Navbar compact */
+  .navbar-brand { font-size: .9rem; }
+  .navbar-nav .nav-link { padding: .4rem .6rem; font-size: .85rem; }
+  .navbar-text { font-size: .78rem; }
+  .collapse.navbar-collapse { max-height: 70vh; overflow-y: auto; }
+
+  /* Stat cards: smaller on mobile */
+  .stat-card .display-6 { font-size: 1.3rem; }
+  .stat-card .text-muted { font-size: .68rem; }
+  .stat-card .card-body { padding: .5rem .35rem; }
+  .stat-card .h4 { font-size: 1rem; }
+
+  /* Cards */
+  .card { border-radius: .4rem; }
+  .card-header { font-size: .82rem; padding: .4rem .6rem; }
+  .card-body { padding: .6rem; }
+
+  /* Tables: compact */
+  .table-sm td, .table-sm th { padding: .25rem .3rem; font-size: .75rem; }
+  .table-responsive { margin: 0 -.6rem; }
+
+  /* Plate badge smaller */
+  .plate-badge { font-size: .7rem; padding: .02rem .25rem; letter-spacing: .5px; }
+
+  /* Filter bar stacks */
+  .filter-bar .row,
+  .filter-bar form > .row { flex-direction: column; }
+  .filter-bar .col-auto,
+  .filter-bar .col { flex: 1 1 100%; max-width: 100%; margin-bottom: .3rem; }
+
+  /* Charts: taller on mobile for readability */
+  canvas { min-height: 180px; }
+
+  /* Buttons */
+  .btn-sm { font-size: .75rem; padding: .2rem .5rem; }
+  .btn-group { gap: .15rem; }
+
+  /* Dashboard header */
+  h4 { font-size: 1.1rem; }
+
+  /* Service form */
+  .big-plate-input { font-size: 1.4rem; letter-spacing: 2px; }
+
+  /* Alerts */
+  .alert { font-size: .8rem; padding: .5rem .75rem; }
+
+  /* Service detail: stack buttons */
+  .btn-group.flex-wrap .btn { margin-bottom: .2rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABLET (576px — 767px)
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .stat-card .display-6 { font-size: 1.4rem; }
+  .filter-bar .col-auto { flex: 0 0 auto; }
+  .table-sm td, .table-sm th { font-size: .8rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DESKTOP (≥768px) — just refinements
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  body { font-size: .9rem; }
+  .stat-card .display-6 { font-size: 1.8rem; }
+  .table-sm td, .table-sm th { font-size: .85rem; padding: .35rem .5rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BOTTOM NAV for mobile (touch-friendly quick actions)
+   ══════════════════════════════════════════════════════════════ */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  display: flex;
+  justify-content: space-around;
+  padding: .3rem 0;
+  border-top: 1px solid rgba(0,0,0,.15);
+}
+.mobile-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  font-size: .65rem;
+  padding: .2rem .4rem;
+  flex: 1;
+  text-align: center;
+}
+.mobile-bottom-nav a .nav-icon { font-size: 1.2rem; }
+[data-bs-theme="light"] .mobile-bottom-nav { background: #fff; }
+[data-bs-theme="dark"]  .mobile-bottom-nav { background: #1a1d21; border-color: rgba(255,255,255,.1); }
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav { display: none !important; }
+}
+@media (max-width: 767.98px) {
+  body { padding-bottom: 3.5rem; }
+}
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+  .navbar, .no-print, .mobile-bottom-nav, footer { display: none !important; }
+  body { padding-bottom: 0; }
+}

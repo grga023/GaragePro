@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Korisnici{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Korisnici (radnici)</h4>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#newUser">➕ Novi korisnik</button>
+</div>
+
+<div class="collapse mb-3" id="newUser">
+  <div class="card card-body">
+    <form method="post" action="{{ url_for('auth.create_user') }}" class="row g-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-3"><input name="full_name" class="form-control" placeholder="Ime i prezime" required></div>
+      <div class="col-md-2"><input name="username" class="form-control" placeholder="Korisničko ime" required></div>
+      <div class="col-md-3"><input name="email" type="email" class="form-control" placeholder="E-mail" required></div>
+      <div class="col-md-2"><input name="password" type="password" class="form-control" placeholder="Lozinka" required></div>
+      <div class="col-md-1">
+        <select name="role" class="form-select">
+          <option value="radnik">Radnik</option>
+          <option value="admin">Vlasnik servisa</option>
+          {% if current_user.is_moderator %}
+          <option value="moderator">Moderator</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="col-md-1"><button class="btn btn-success w-100">Dodaj</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Ime</th><th>Korisničko ime</th><th>E-mail</th><th>Uloga</th><th>Status</th><th>Akcije</th></tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ u.full_name }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td><span class="badge bg-{{ 'warning text-dark' if u.is_admin else 'secondary' }}">{{ ROLE_LABELS[u.role] }}</span></td>
+          <td>{% if u.active %}<span class="badge bg-success">Aktivan</span>{% else %}<span class="badge bg-danger">Neaktivan</span>{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('auth.toggle_role', user_id=u.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary btn-sm">Promeni ulogu</button>
+            </form>
+            <form method="post" action="{{ url_for('auth.toggle_active', user_id=u.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-{{ 'danger' if u.active else 'success' }} btn-sm">
+                {{ 'Deaktiviraj' if u.active else 'Aktiviraj' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

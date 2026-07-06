@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Servisi{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Servisi {% if not current_user.is_admin %}<span class="text-muted small">(samo Vaši)</span>{% endif %}</h4>
+  <a href="{{ url_for('services.start') }}" class="btn btn-primary btn-sm">➕ Novi servis</a>
+</div>
+
+<form class="mb-3" method="get">
+  <div class="row g-2">
+    <div class="col">
+      <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="Pretraga po registraciji…" value="{{ q }}">
+        <button class="btn btn-outline-secondary">Traži</button>
+      </div>
+    </div>
+    <div class="col-auto">
+      <select name="service_type" class="form-select" onchange="this.form.submit()">
+        <option value="">Sve vrste</option>
+        {% for key, label in SERVICE_TYPES %}
+        <option value="{{ key }}" {{ 'selected' if filter_type == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Datum</th><th>Vrsta</th>
+          {% if current_user.is_moderator %}<th>Radnja</th>{% endif %}
+          <th>Registracija</th><th class="d-none d-md-table-cell">Vozilo</th><th class="d-none d-lg-table-cell">Vlasnik</th>
+          {% if current_user.is_admin %}<th class="d-none d-md-table-cell">Radnik</th>{% endif %}
+          <th class="money">Ukupno</th>
+          {% if current_user.is_admin %}<th class="money d-none d-md-table-cell">Profit</th>{% endif %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in services %}
+        <tr>
+          <td class="text-nowrap">{{ s.date | srdate }}</td>
+          <td><span class="badge badge-stype-{{ s.service_type }}">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</span></td>
+          {% if current_user.is_moderator %}<td class="small">{{ s.car.shop.name if s.car.shop else '-' }}</td>{% endif %}
+          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
+          <td class="d-none d-md-table-cell">{{ s.car.description }}</td>
+          <td class="d-none d-lg-table-cell">{{ s.car.owner_name }}</td>
+          {% if current_user.is_admin %}<td class="d-none d-md-table-cell">{{ s.worker.full_name }}</td>{% endif %}
+          <td class="money">{{ s.total_full | currency }}</td>
+          {% if current_user.is_admin %}<td class="money text-success d-none d-md-table-cell">{{ s.total_profit | currency }}</td>{% endif %}
+          <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="12" class="text-center text-muted py-4">Nema servisa.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

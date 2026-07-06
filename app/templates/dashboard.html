@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Početna{% endblock %}
+{% block content %}
+
+{% if not company or not company.name %}
+  {% if current_user.is_admin %}
+  <div class="alert alert-warning">
+    Servis još nije podešen. <a href="{{ url_for('main.setup') }}" class="alert-link">Unesite naziv, adresu, kontakt i logo »</a>
+  </div>
+  {% endif %}
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Dobrodošli, {{ current_user.full_name }}</h4>
+  <a href="{{ url_for('services.start') }}" class="btn btn-primary">➕ Novi servis</a>
+</div>
+
+{% for a in alerts %}
+<div class="alert alert-{{ a.type }} alert-dismissible fade show py-2" role="alert">
+  {{ a.msg }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Servisi danas</div>
+      <div class="display-6">{{ stats.today_count }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Promet danas</div>
+      <div class="h4 mt-2">{{ stats.today_revenue | currency }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Servisi (mesec)</div>
+      <div class="display-6">{{ stats.month_count }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Promet (mesec)</div>
+      <div class="h4 mt-2">{{ stats.month_revenue | currency }}</div>
+    </div></div>
+  </div>
+</div>
+
+{% if type_stats %}
+<div class="card mb-4">
+  <div class="card-header">📊 Raspodela po vrsti servisa (ovaj mesec)</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Vrsta</th><th class="money">Broj</th><th class="money">Promet</th>{% if current_user.is_admin %}<th class="money">Profit</th>{% endif %}</tr>
+      </thead>
+      <tbody>
+      {% for t in type_stats %}
+        <tr>
+          <td><span class="badge badge-stype-{{ t.key }}">{{ t.label }}</span></td>
+          <td class="money">{{ t.count }}</td>
+          <td class="money">{{ t.revenue | currency }}</td>
+          {% if current_user.is_admin %}<td class="money text-success">{{ t.profit | currency }}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr>
+          <th>Ukupno</th>
+          <th class="money">{{ type_stats | sum(attribute='count') }}</th>
+          <th class="money">{{ type_stats | map(attribute='revenue') | sum | currency }}</th>
+          {% if current_user.is_admin %}<th class="money text-success">{{ type_stats | map(attribute='profit') | sum | currency }}</th>{% endif %}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span>Poslednji servisi</span>
+    <a href="{{ url_for('services.list_services') }}" class="small">Svi servisi »</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Datum</th><th>Registracija</th><th>Vozilo</th><th>Vlasnik</th>
+          {% if current_user.is_admin %}<th>Radnik</th>{% endif %}
+          <th class="money">Ukupno</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in recent %}
+        <tr>
+          <td>{{ s.date | srdate }}</td>
+          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
+          <td>{{ s.car.description }}</td>
+          <td>{{ s.car.owner_name }}</td>
+          {% if current_user.is_admin %}<td>{{ s.worker.full_name }}</td>{% endif %}
+          <td class="money">{{ s.total_full | currency }}</td>
+          <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Još nema servisa. Kliknite „Novi servis“.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Servis #{{ service.id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0">Servis — {{ service.date | srdate }}</h4>
+    <span class="plate-badge">{{ car.plate }}</span>
+    <span class="badge badge-stype-{{ service.service_type }}">{{ SERVICE_TYPE_LABELS.get(service.service_type, service.service_type) }}</span>
+    <span class="text-muted">{{ car.description }} — {{ car.owner_name }}</span>
+  </div>
+  <div class="btn-group flex-wrap">
+    <button onclick="inlinePrint('{{ url_for('printing.service', service_id=service.id, mode='customer') }}')" class="btn btn-outline-dark btn-sm">🖨️ Kupac</button>
+    <button onclick="inlinePrint('{{ url_for('printing.service', service_id=service.id, mode='owner') }}')" class="btn btn-outline-dark btn-sm">🖨️ Vlasnik</button>
+    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='customer') }}" class="btn btn-outline-danger btn-sm">📄 PDF kupac</a>
+    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='owner') }}" class="btn btn-outline-danger btn-sm">📄 PDF vlasnik</a>
+    <a href="{{ url_for('services.edit', service_id=service.id) }}" class="btn btn-outline-primary btn-sm">✏️ Izmeni</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">Ugrađeni delovi</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Naziv</th><th class="money">Kol.</th>
+              <th class="money">Cena (bez pop.)</th>
+              <th class="money">Cena (sa pop.)</th>
+              <th class="money">Ukupno</th>
+              <th class="money">Profit</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in service.parts %}
+            <tr>
+              <td>{{ p.name }}</td>
+              <td class="money">{{ p.quantity }}</td>
+              <td class="money">{{ p.price | currency }}</td>
+              <td class="money">{{ p.price_with_discount | currency }}</td>
+              <td class="money">{{ p.line_full | currency }}</td>
+              <td class="money text-success">{{ p.line_profit | currency }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Bez delova.</td></tr>
+          {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <th colspan="4" class="text-end">Delovi ukupno:</th>
+              <th class="money">{{ service.parts_total_full | currency }}</th>
+              <th class="money text-success">{{ service.parts_profit | currency }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    {% if service.labor_description %}
+    <div class="card mt-3"><div class="card-body">
+      <h6 class="text-muted">Opis rada</h6>
+      <p class="mb-0">{{ service.labor_description }}</p>
+    </div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">Obračun</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Kilometraža</td><td class="money"><strong>{{ '{:,}'.format(service.mileage).replace(',', '.') if service.mileage else '-' }} km</strong></td></tr>
+          <tr><td class="text-muted">Delovi (bez popusta)</td><td class="money">{{ service.parts_total_full | currency }}</td></tr>
+          <tr><td class="text-muted">Delovi (nabavna)</td><td class="money">{{ service.parts_total_cost | currency }}</td></tr>
+          <tr><td class="text-muted">Rad</td><td class="money">{{ service.labor_price | currency }}</td></tr>
+          <tr class="border-top"><td><strong>UKUPNO</strong></td><td class="money"><strong>{{ service.total_full | currency }}</strong></td></tr>
+          <tr class="text-success"><td><strong>Profit</strong></td><td class="money"><strong>{{ service.total_profit | currency }}</strong></td></tr>
+        </table>
+      </div>
+      <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="small text-muted">Radnik: {{ service.worker.full_name }}</span>
+          <form method="post" action="{{ url_for('services.delete', service_id=service.id) }}"
+                onsubmit="return confirm('Obrisati ovaj servis?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm">🗑️ Obriši</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

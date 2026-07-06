@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "DejaVu"; src: url("/static/fonts/DejaVuSans.ttf"); }
+  @font-face { font-family: "DejaVu"; src: url("/static/fonts/DejaVuSans-Bold.ttf"); font-weight: bold; }
+
+  @page { size: a4; margin: 1.2cm; }
+  body { font-family: "DejaVu"; font-size: 9pt; color: #000; }
+
+  table.head { width: 100%; border-bottom: 1.5pt solid #000; margin-bottom: 8pt; }
+  table.head td { vertical-align: top; padding: 0; }
+  td.logo-cell { width: 50%; }
+  td.logo-cell img { height: 2cm; }
+  td.company-cell { width: 50%; text-align: right; font-size: 8pt; }
+  td.company-cell .cname { font-weight: bold; font-size: 11pt; }
+
+  .doc-title { text-align: center; font-size: 11pt; font-weight: bold; margin: 4pt 0 8pt; }
+
+  .vehicle p { margin: 1pt 0; }
+  .vehicle b { font-weight: bold; }
+
+  .svc-date { font-size: 10pt; margin: 10pt 0 3pt; padding-bottom: 2pt; border-bottom: 0.5pt solid #999; }
+
+  table.parts { width: 100%; border-collapse: collapse; margin-top: 2pt; }
+  table.parts th, table.parts td { border: 0.5pt solid #333; padding: 3pt 4pt; }
+  table.parts th { background-color: #eaeaea; text-align: left; font-weight: bold; }
+  .num { text-align: right; }
+  table.parts tfoot td { font-weight: bold; background-color: #f4f4f4; }
+
+  table.totals { width: 55%; margin-top: 5pt; margin-left: 45%; }
+  table.totals td { padding: 1.5pt 4pt; }
+  table.totals td.num { text-align: right; }
+  .grand td { font-weight: bold; border-top: 1pt solid #000; font-size: 10pt; }
+
+  .foot { margin-top: 14pt; font-size: 7.5pt; color: #444; text-align: center; }
+</style>
+</head>
+<body>
+  <table class="head">
+    <tr>
+      <td class="logo-cell">
+        {% if company and company.logo_path %}
+          <img src="/media/{{ company.logo_path }}">
+        {% else %}
+          <span style="font-size:8pt;color:#999">[logo]</span>
+        {% endif %}
+      </td>
+      <td class="company-cell">
+        {% if company %}
+          <div class="cname">{{ company.name or 'Auto Servis' }}</div>
+          {% if company.address %}<div>{{ company.address }}</div>{% endif %}
+          {% if company.contact %}<div>{{ company.contact }}</div>{% endif %}
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <div class="doc-title">{{ 'RADNI NALOG' if owner else 'RAČUN / SPECIFIKACIJA' }}</div>
+
+  <div class="vehicle">
+    <p>Vozilo: <b>{{ car.description or '-' }}</b></p>
+    <p>Registarska oznaka: <b>{{ car.plate }}</b></p>
+    <p>Vlasnik: <b>{{ car.owner_name }}</b>{% if car.phone %} &nbsp;&nbsp; Telefon: <b>{{ car.phone }}</b>{% endif %}</p>
+    <p>Poslednja kilometraža: <b>{{ '{:,}'.format(car.mileage).replace(',', '.') if car.mileage else '-' }} km</b></p>
+  </div>
+
+  {% for s in services %}
+  <div class="service">
+    <div class="svc-date">
+      Datum servisa: <b>{{ s.date | srdate }}</b>{% if s.mileage %} &nbsp;•&nbsp; Kilometraža: <b>{{ '{:,}'.format(s.mileage).replace(',', '.') }} km</b>{% endif %}
+    </div>
+
+    <table class="parts">
+      <thead>
+        {% if owner %}
+        <tr>
+          <th>Naziv dela</th><th class="num">Kol.</th>
+          <th class="num">Cena (bez pop.)</th><th class="num">Cena (sa pop.)</th>
+          <th class="num">Ukupno</th><th class="num">Profit</th>
+        </tr>
+        {% else %}
+        <tr><th>Naziv dela</th><th class="num">Kol.</th><th class="num">Cena</th><th class="num">Ukupno</th></tr>
+        {% endif %}
+      </thead>
+      <tbody>
+        {% for p in s.parts %}
+        <tr>
+          <td>{{ p.name }}</td>
+          <td class="num">{{ p.quantity }}</td>
+          {% if owner %}
+            <td class="num">{{ p.price | currency }}</td>
+            <td class="num">{{ p.price_with_discount | currency }}</td>
+            <td class="num">{{ p.line_full | currency }}</td>
+            <td class="num">{{ p.line_profit | currency }}</td>
+          {% else %}
+            <td class="num">{{ p.price | currency }}</td>
+            <td class="num">{{ p.line_full | currency }}</td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 6 if owner else 4 }}" style="text-align:center;color:#777">Bez ugrađenih delova.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        {% if owner %}
+        <tr><td colspan="4" class="num">Delovi ukupno:</td><td class="num">{{ s.parts_total_full | currency }}</td><td class="num">{{ s.parts_profit | currency }}</td></tr>
+        {% else %}
+        <tr><td colspan="3" class="num">Delovi ukupno:</td><td class="num">{{ s.parts_total_full | currency }}</td></tr>
+        {% endif %}
+      </tfoot>
+    </table>
+
+    {% if owner %}
+    <table class="totals">
+      <tr><td>Delovi (prodajna):</td><td class="num">{{ s.parts_total_full | currency }}</td></tr>
+      <tr><td>Delovi (nabavna):</td><td class="num">{{ s.parts_total_cost | currency }}</td></tr>
+      <tr><td>Rad:</td><td class="num">{{ s.labor_price | currency }}</td></tr>
+      <tr class="grand"><td>UKUPNO ZA NAPLATU:</td><td class="num">{{ s.total_full | currency }}</td></tr>
+      <tr><td>Profit:</td><td class="num">{{ s.total_profit | currency }}</td></tr>
+    </table>
+    {% else %}
+    <table class="totals">
+      <tr class="grand"><td>UKUPNO (delovi):</td><td class="num">{{ s.parts_total_full | currency }}</td></tr>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="foot">
+    {{ 'Interni primerak — vlasnik servisa' if owner else 'Primerak za kupca' }} • Štampano: {{ now | srdate }}
+  </div>
+</body>
+</html>

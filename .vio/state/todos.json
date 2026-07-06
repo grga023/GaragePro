@@ -1,0 +1,24 @@
+{
+  "todos": [
+    {
+      "id": "td_c155d34d",
+      "content": "1. Print without new page — use iframe + window.print() on same page",
+      "status": "completed",
+      "priority": "medium"
+    },
+    {
+      "id": "td_9a7a324c",
+      "content": "2. Workers scoped to services — only see services they're assigned to, not other services/data",
+      "status": "completed",
+      "priority": "medium"
+    },
+    {
+      "id": "td_99577757",
+      "content": "3. Login security — remember me checkbox, CSRF hardening, better password requirements",
+      "status": "completed",
+      "priority": "medium"
+    }
+  ],
+  "updated_at": 1783374412.9729133,
+  "version": 1
+}

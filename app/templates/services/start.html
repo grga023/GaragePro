@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Novi servis{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-6">
+    <div class="card"><div class="card-body p-4 text-center">
+      <h4 class="mb-1">Novi servis</h4>
+      <p class="text-muted">Unesite registarsku oznaku vozila</p>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="plate" class="form-control big-plate-input mb-3"
+               placeholder="BG123AB" autofocus autocomplete="off" required>
+        <button type="submit" class="btn btn-primary btn-lg w-100">Nastavi ➜</button>
+      </form>
+      <p class="text-muted small mt-3 mb-0">
+        Ako vozilo postoji, odmah dodajete servis.<br>
+        Ako ne postoji, prvo ćete ga registrovati.
+      </p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

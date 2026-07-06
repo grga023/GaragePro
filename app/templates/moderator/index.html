@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Moderator — Pregled servisa{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">🏢 Svi servisi</h4>
+  <a href="{{ url_for('moderator.new_shop') }}" class="btn btn-primary btn-sm">➕ Novi servis</a>
+</div>
+
+{% if not shop_stats %}
+<div class="alert alert-info">Još nema registrovanih servisa. Kliknite „Novi servis" da dodate prvi.</div>
+{% endif %}
+
+<div class="row g-3">
+{% for item in shop_stats %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 {{ '' if item.shop.is_active else 'border-danger opacity-75' }}">
+      <div class="card-body">
+        <h5 class="card-title">
+          {{ item.shop.name }}
+          {% if not item.shop.is_active %}
+          <span class="badge bg-danger">Neaktivan</span>
+          {% endif %}
+        </h5>
+        {% if item.shop.address %}
+        <p class="text-muted small mb-1">📍 {{ item.shop.address }}</p>
+        {% endif %}
+        {% if item.owner %}
+        <p class="mb-1"><strong>Vlasnik:</strong> {{ item.owner.full_name }}</p>
+        {% else %}
+        <p class="mb-1 text-warning"><strong>Vlasnik:</strong> nije dodeljen</p>
+        {% endif %}
+        <div class="d-flex gap-3 text-muted small mt-2">
+          <span>👥 {{ item.users }} korisnik{{ 'a' if item.users != 1 else '' }}</span>
+          <span>🚗 {{ item.cars }} vozil{{ 'a' if item.cars != 1 else 'o' }}</span>
+          <span>🔧 {{ item.services }} servis{{ 'a' if item.services != 1 else '' }}</span>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <a href="{{ url_for('moderator.shop_detail', shop_id=item.shop.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a>
+        <a href="{{ url_for('moderator.edit_shop', shop_id=item.shop.id) }}" class="btn btn-sm btn-outline-secondary">Uredi</a>
+        <form method="post" action="{{ url_for('moderator.toggle_shop', shop_id=item.shop.id) }}" class="ms-auto">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-{{ 'danger' if item.shop.is_active else 'success' }}">
+            {{ 'Deaktiviraj' if item.shop.is_active else 'Aktiviraj' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

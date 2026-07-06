@@ -1,0 +1,15 @@
+# Tajmer koji svakodnevno pokreće rezervnu kopiju u 02:30.
+#
+#   sudo systemctl enable --now carservice-backup.timer
+#   systemctl list-timers | grep carservice
+
+[Unit]
+Description=Dnevna rezervna kopija Auto Servis baze
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+Unit=carservice-backup.service
+
+[Install]
+WantedBy=timers.target

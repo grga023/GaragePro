@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VIO Wiki</title>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+.mermaid-figure {
+  margin: 14px 0;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-align: center;
+  cursor: zoom-in;
+  overflow-x: auto;
+}
+.mermaid-figure svg { max-width: 100%; height: auto; overflow: visible; }
+pre.mermaid-error {
+  border-left: 3px solid #ef4444;
+  background: #fef2f2;
+}
+#mermaid-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.82);
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 32px;
+}
+.mermaid-lightbox-inner {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 92vw;
+  height: 90vh;
+  max-width: 92vw;
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mermaid-lightbox-inner svg {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 100%;
+}
+html, body { max-width: 100%; overflow-x: hidden; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  box-sizing: border-box;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.title strong { font-size: 16px; margin-right: 8px; }
+.muted { color: #64748b; font-size: 12px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.controls input, .controls select, .controls button {
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+}
+.controls input { width: 220px; max-width: 40vw; }
+.controls button { cursor: pointer; background: #f1f5f9; }
+.controls button:hover { background: #e2e8f0; }
+
+main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;   /* never let panes spill under the window edge */
+}
+
+/* ── Link tree (left, resizable + collapsible) ── */
+#tree {
+  flex: 0 0 240px;
+  width: 240px;
+  min-width: 150px;
+  max-width: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  padding: 8px 0;
+}
+body.tree-hidden #tree,
+body.tree-hidden #tree-gutter { display: none; }
+/* Resize gutter between the tree and the content */
+#tree-gutter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: #e2e8f0;
+}
+#tree-gutter:hover, #tree-gutter.dragging { background: #94a3b8; }
+.tree-head {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  padding: 4px 14px 8px;
+}
+/* Tree header bar: collapse toggle (icon) on the LEFT of the "Pages" title */
+.tree-head-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+}
+.tree-toggle {
+  flex: 0 0 auto; border: 1px solid #e2e8f0; background: #fff;
+  border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1;
+  padding: 3px 7px; color: #475569;
+}
+.tree-toggle:hover { background: #f1f5f9; }
+.tree-head-title { font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+
+/* Reopen buttons — shown only when a pane is collapsed. Thin, docked strips. */
+.pane-reopen {
+  flex: 0 0 26px; align-self: stretch; border: none; cursor: pointer;
+  background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; padding: 0; border-right: 1px solid #e2e8f0;
+  writing-mode: vertical-rl; text-orientation: mixed;
+}
+.pane-reopen.pane-reopen-right { border-right: none; border-left: 1px solid #e2e8f0; }
+.pane-reopen:hover { background: #e2e8f0; }
+.pane-reopen[hidden] { display: none; }
+#tree-list, #tree-list ul { list-style: none; margin: 0; padding: 0; }
+#tree-list ul { margin-left: 12px; }
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-item:hover { background: #f1f5f9; }
+.tree-item.active {
+  background: #eff6ff;
+  border-left-color: #2563eb;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.tree-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+/* ── Detail (middle) ── */
+#detail {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 22px;
+  background: #fff;
+  min-width: 0;   /* allow the middle pane to shrink so the graph stays in view */
+}
+/* Resize gutter between detail (middle) and graph (right) */
+#gutter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: #e2e8f0;
+  position: relative;
+}
+#gutter:hover, #gutter.dragging { background: #94a3b8; }
+/* ── Graph pane (right) ── */
+#graph-pane {
+  flex: 1 1 46%;
+  min-width: 0;
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+}
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+.graph-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  flex: 1;
+}
+.graph-toolbar button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+.graph-toolbar button:hover { background: #e2e8f0; }
+#graph {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
+  overflow: hidden;   /* clip the cytoscape canvas; it auto-fits via ResizeObserver */
+}
+/* Graph hidden state: collapse the pane + its gutter, content takes the room */
+body.graph-hidden #graph-pane,
+body.graph-hidden #gutter { display: none; }
+
+/* ── Narrow viewport (embedded in a thin sidebar) ──
+   Stack the panes vertically so nothing spills under the window edge and we
+   never need a horizontal scrollbar. The drag-gutter (a vertical col-resizer)
+   stops making sense when stacked, so hide it; panes get sensible heights. */
+/* Stacked layout: triggered EITHER by the iframe's own narrow viewport, OR by
+   the host (VIO wiki sidebar) adding `body.vio-stacked` so it switches at the
+   exact same width as the native pane. Both selectors share one rule set. */
+@media (max-width: 520px) {
+  main { flex-direction: column; overflow-y: auto; overflow-x: hidden; min-width: 0; }
+  /* Force-override any JS-persisted inline px widths from drag-resize, which
+     would otherwise spill past the narrow viewport and create a bottom
+     horizontal scrollbar. Heights come from JS-persisted inline flex-basis
+     (set by the row-resizers below); these are the initial fallbacks. */
+  #tree {
+    flex: 0 0 auto; width: 100% !important; max-width: none !important;
+    min-width: 0 !important; height: 26vh; min-height: 90px; border-right: none;
+    border-bottom: none; overflow: auto;
+  }
+  #detail { flex: 1 1 auto !important; min-height: 160px; min-width: 0 !important; }
+  #graph-pane {
+    flex: 0 0 auto; width: 100% !important; max-width: none !important;
+    min-width: 0 !important; height: 40vh; min-height: 120px; border-left: none;
+    border-top: none;
+  }
+  .graph-toolbar { flex-wrap: wrap; }
+  /* Repurpose the two col-resizers as horizontal row-resizers when stacked. */
+  #tree-gutter, #gutter {
+    display: block !important; flex: 0 0 6px; width: 100% !important;
+    height: 6px; cursor: row-resize;
+  }
+}
+/* Host-driven stack (VIO wiki sidebar adds body.vio-stacked at the same width
+   the native pane stacks). Mirrors the media-query rules above exactly. */
+body.vio-stacked main { flex-direction: column; overflow-y: auto; overflow-x: hidden; min-width: 0; }
+body.vio-stacked #tree {
+  flex: 0 0 auto; width: 100% !important; max-width: none !important;
+  min-width: 0 !important; height: 26vh; min-height: 90px; border-right: none;
+  border-bottom: none; overflow: auto;
+}
+body.vio-stacked #detail { flex: 1 1 auto !important; min-height: 160px; min-width: 0 !important; }
+body.vio-stacked #graph-pane {
+  flex: 0 0 auto; width: 100% !important; max-width: none !important;
+  min-width: 0 !important; height: 40vh; min-height: 120px; border-left: none;
+  border-top: none;
+}
+body.vio-stacked .graph-toolbar { flex-wrap: wrap; }
+body.vio-stacked #tree-gutter, body.vio-stacked #gutter {
+  display: block !important; flex: 0 0 6px; width: 100% !important;
+  height: 6px; cursor: row-resize;
+}
+#detail-empty {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.detail-header { margin-bottom: 12px; }
+.detail-header h1 {
+  font-size: 18px;
+  margin: 4px 0 2px;
+  font-weight: 600;
+}
+.type-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+dl.frontmatter {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  row-gap: 4px;
+  column-gap: 12px;
+  margin: 8px 0 12px;
+  font-size: 13px;
+}
+dl.frontmatter dt {
+  color: #64748b;
+  font-weight: 500;
+}
+dl.frontmatter dd { margin: 0; }
+dl.frontmatter a { color: #2563eb; word-break: break-all; }
+
+.tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 4px 2px 0;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+}
+
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 14px 0; }
+
+#detail-body { font-size: 13px; line-height: 1.55; }
+#detail-body h1 {
+  font-size: 16px; margin: 18px 0 6px;
+  padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;
+}
+#detail-body h2 { font-size: 14px; margin: 14px 0 4px; }
+#detail-body h3 { font-size: 13px; margin: 12px 0 4px; }
+#detail-body p { margin: 6px 0; }
+#detail-body code {
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+}
+#detail-body pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+#detail-body pre code { background: transparent; color: inherit; padding: 0; }
+#detail-body ul, #detail-body ol { padding-left: 22px; margin: 6px 0; }
+#detail-body li { margin: 2px 0; }
+#detail-body table { border-collapse: collapse; margin: 8px 0; }
+#detail-body th, #detail-body td {
+  border: 1px solid #e2e8f0; padding: 4px 8px; font-size: 12px;
+}
+#detail-body a.internal { color: #2563eb; cursor: pointer; }
+#detail-body a.external { color: #2563eb; }
+
+#detail-backlinks { margin-top: 18px; }
+#detail-backlinks h2 { font-size: 13px; color: #64748b; margin-bottom: 6px; }
+#detail-backlinks ul { padding-left: 18px; }
+#detail-backlinks a { color: #2563eb; cursor: pointer; }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <strong id="bundle-name"></strong>
+    <span class="muted">VIO Wiki — OKF bundle</span>
+  </div>
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search title / id / tag">
+    <select id="filter-type">
+      <option value="">All types</option>
+    </select>
+    <select id="layout">
+      <option value="cose">cose (force)</option>
+      <option value="concentric">concentric</option>
+      <option value="breadthfirst">breadth-first</option>
+      <option value="circle">circle</option>
+      <option value="grid">grid</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <nav id="tree">
+    <div class="tree-head tree-head-bar">
+      <button id="toggle-tree" class="tree-toggle" title="Hide the page tree">&#9776;</button>
+      <span class="tree-head-title">Pages</span>
+    </div>
+    <ul id="tree-list"></ul>
+  </nav>
+  <button id="tree-reopen" class="pane-reopen" title="Show the page tree" hidden>&#9776; Pages</button>
+  <div id="tree-gutter" title="Drag to resize the page tree"></div>
+  <section id="detail">
+    <div id="detail-empty" class="muted">Click a node to see its details.</div>
+    <article id="detail-content" hidden>
+      <header class="detail-header">
+        <span class="type-chip" id="detail-type"></span>
+        <h1 id="detail-title"></h1>
+        <div class="muted" id="detail-id"></div>
+      </header>
+      <dl class="frontmatter">
+        <dt>Description</dt><dd id="detail-description"></dd>
+        <dt>Resource</dt><dd id="detail-resource"></dd>
+        <dt>Tags</dt><dd id="detail-tags"></dd>
+      </dl>
+      <hr>
+      <div id="detail-body"></div>
+      <section id="detail-backlinks" hidden>
+        <h2>Cited by</h2>
+        <ul id="backlinks-list"></ul>
+      </section>
+    </article>
+  </section>
+  <div id="gutter" title="Drag to resize the graph"></div>
+  <section id="graph-pane">
+    <div class="graph-toolbar">
+      <span class="graph-title">Graph</span>
+      <button id="fit-graph" title="Fit / center the graph in this pane">Fit</button>
+      <button id="reset-graph" title="Re-run layout and fit">Reset</button>
+      <button id="toggle-graph" title="Hide the graph view">Hide</button>
+    </div>
+    <div id="graph"></div>
+  </section>
+  <button id="graph-reopen" class="pane-reopen pane-reopen-right" title="Show the graph" hidden>Graph</button>
+</main>
+
+<script>
+window.BUNDLE_NAME = "bundle";
+window.BUNDLE = {"nodes": [{"data": {"id": "architecture/analytics", "label": "Analytics", "type": "Architecture", "description": "Chart.js-powered analytics page: time-series revenue/profit, revenue structure doughnut, parts price comparison, and per-worker profit breakdown.", "resource": "", "tags": ["analytics", "chart-js", "javascript", "reports", "visualization"], "color": "#a855f7", "size": 45}}, {"data": {"id": "architecture/build-and-deploy", "label": "Deployment", "type": "Architecture", "description": "Production deployment with Waitress (serve.py), Raspberry Pi systemd setup, dev server (run.py), database initialization (init_db.py), and environment configuration.", "resource": "", "tags": ["deployment", "waitress", "raspberry-pi", "systemd", "init-db", "production"], "color": "#a855f7", "size": 48}}, {"data": {"id": "architecture/configuration", "label": "Configuration", "type": "Architecture", "description": "All environment variables and the Config class covering database, uploads, SMTP, security settings, scheduler toggle, and deployment options.", "resource": "", "tags": ["configuration", "environment", "dotenv", "smtp", "deployment"], "color": "#a855f7", "size": 51}}, {"data": {"id": "architecture/data-flow", "label": "Data Flow", "type": "Data Flow", "description": "End-to-end data flow from browser through Flask blueprints to SQLite: the plate-first service workflow, journal generation, and print/PDF pipeline.", "resource": "", "tags": ["data-flow", "workflow", "request-lifecycle", "flask", "sqlite"], "color": "#f97316", "size": 51}}, {"data": {"id": "architecture/deployment", "label": "Deployment", "type": "Architecture", "description": "Production deployment on Raspberry Pi Zero 2W (systemd + Waitress), Windows quick start, database initialization with init_db.py, and .env configuration.", "resource": "", "tags": ["deployment", "raspberry-pi", "waitress", "systemd", "windows"], "color": "#a855f7", "size": 48}}, {"data": {"id": "architecture/plate-first-flow", "label": "Plate-First Service Flow", "type": "Architecture", "description": "End-to-end user journey from entering a license plate number through optional car registration to creating a service record with parts and labor.", "resource": "", "tags": ["workflow", "plate-first", "user-journey", "services", "cars"], "color": "#a855f7", "size": 49}}, {"data": {"id": "architecture/pricing-model", "label": "Pricing & Profit Model", "type": "Architecture", "description": "The dual-price system with retail and discounted part prices, per-service profit calculation, and how journals and analytics aggregate financial data.", "resource": "", "tags": ["pricing", "profit", "margin", "parts", "business-logic", "analytics"], "color": "#a855f7", "size": 52}}, {"data": {"id": "architecture/pricing", "label": "Pricing & Profit Model", "type": "Architecture", "description": "End-to-end pricing: how retail/discounted part prices, labor, and profit are calculated across Part, Service, reports, journals, and print copies.", "resource": "", "tags": ["pricing", "profit", "business-logic", "parts", "revenue"], "color": "#a855f7", "size": 48}}, {"data": {"id": "architecture/scheduler-email", "label": "Scheduler & Email", "type": "Architecture", "description": "APScheduler background jobs for automatic journal delivery and nightly backups, plus the SMTP email sending utility.", "resource": "", "tags": ["apscheduler", "email", "smtp", "journals", "automation", "cron"], "color": "#a855f7", "size": 52}}, {"data": {"id": "architecture/scheduler", "label": "Background Scheduler", "type": "Architecture", "description": "APScheduler integration for automatic daily/weekly/monthly journal e-mailing and nightly database backups.", "resource": "", "tags": ["apscheduler", "automation", "journals", "backup", "cron"], "color": "#a855f7", "size": 45}}, {"data": {"id": "architecture/security", "label": "Security Architecture", "type": "Architecture", "description": "Cross-cutting security: CSRF via Flask-WTF, IP-based login throttling, admin_required decorator, security response headers, session hardening, and deactivated-user ejection.", "resource": "", "tags": ["security", "csrf", "throttling", "headers", "authorization"], "color": "#a855f7", "size": 51}}, {"data": {"id": "files/_verify2", "label": "Verification Tests", "type": "File", "description": "Integration test script (_verify2.py) that exercises CSRF, page rendering, PDF generation, backup creation, security headers, dark theme, and mileage recomputation.", "resource": "file:///D:/Service/_verify2.py", "tags": ["testing", "integration-tests", "verification", "csrf", "pdf"], "color": "#22c55e", "size": 47}}, {"data": {"id": "files/app/auth", "label": "Authentication & Users", "type": "File", "description": "Login, self-registration, user management, role toggling, login throttling, and the admin_required decorator.", "resource": "file:///D:/Service/app/auth.py", "tags": ["authentication", "flask-login", "roles", "throttling", "security"], "color": "#22c55e", "size": 44}}, {"data": {"id": "files/app/backup", "label": "Backup System", "type": "File", "description": "Consistent SQLite snapshot + uploads zip via admin UI, CLI script, and scheduled automatic backups with configurable retention pruning.", "resource": "file:///D:/Service/app/backup.py", "tags": ["backup", "sqlite", "admin", "scheduler", "zip"], "color": "#22c55e", "size": 43}}, {"data": {"id": "files/app/cars", "label": "Car Management", "type": "File", "description": "CRUD operations for vehicles: registration by plate, search, photo upload, editing, and detail view with service history.", "resource": "file:///D:/Service/app/cars.py", "tags": ["cars", "crud", "vehicles", "blueprint", "upload"], "color": "#22c55e", "size": 41}}, {"data": {"id": "files/app/main", "label": "Dashboard & Setup", "type": "Entrypoint", "description": "The main_bp blueprint providing the dashboard with today/month stats and the admin-only company setup page.", "resource": "file:///D:/Service/app/main.py", "tags": ["dashboard", "setup", "blueprint", "entrypoint", "statistics"], "color": "#eab308", "size": 39}}, {"data": {"id": "files/app/models", "label": "Data Models", "type": "File", "description": "SQLAlchemy models (User, Company, Car, Service, Part) with relationships and derived pricing/profit properties.", "resource": "file:///D:/Service/app/models.py", "tags": ["sqlalchemy", "models", "database", "pricing", "orm"], "color": "#22c55e", "size": 49}}, {"data": {"id": "files/app/printing", "label": "Printing & PDF", "type": "File", "description": "HTML and PDF print views for services and cars in customer and owner modes, using xhtml2pdf with DejaVu font for Serbian glyphs.", "resource": "file:///D:/Service/app/printing.py", "tags": ["printing", "pdf", "xhtml2pdf", "blueprint", "serbian-font"], "color": "#22c55e", "size": 44}}, {"data": {"id": "files/app/reports", "label": "Reports & Analytics", "type": "File", "description": "Journals (daily/weekly/monthly by worker or shop-wide), profit summaries, Chart.js analytics, and e-mail delivery.", "resource": "file:///D:/Service/app/reports.py", "tags": ["reports", "journals", "analytics", "charts", "email", "blueprint"], "color": "#22c55e", "size": 48}}, {"data": {"id": "files/app/services", "label": "Service Records", "type": "File", "description": "The plate-first service workflow: start by plate, create/edit/delete services with parts and labor, and automatic mileage recompute.", "resource": "file:///D:/Service/app/services.py", "tags": ["services", "workflow", "parts", "labor", "mileage", "blueprint"], "color": "#22c55e", "size": 46}}, {"data": {"id": "files/app/utils", "label": "Utilities", "type": "File", "description": "Helper functions: Serbian currency formatting, Serbian date formatting, image upload with Pillow resizing, allowed extensions check, and period range calculation.", "resource": "file:///D:/Service/app/utils.py", "tags": ["utilities", "formatting", "images", "pillow", "serbian"], "color": "#22c55e", "size": 43}}, {"data": {"id": "modules/app/static/js", "label": "Frontend Assets", "type": "Module", "description": "Client-side JavaScript modules: Chart.js analytics charts, dynamic service-form parts table with live price recalculation, and Bootstrap dark/light theme toggle.", "resource": "file:///D:/Service/app/static/js", "tags": ["javascript", "chartjs", "bootstrap", "dark-theme", "frontend"], "color": "#3b82f6", "size": 44}}, {"data": {"id": "modules/app", "label": "Application Factory", "type": "Module", "description": "The create_app() factory in app/__init__.py wires together blueprints, extensions, middleware, error handlers, and the optional scheduler.", "resource": "file:///D:/Service/app", "tags": ["flask", "app-factory", "blueprints", "middleware", "extensions"], "color": "#3b82f6", "size": 49}}, {"data": {"id": "overview", "label": "Overview", "type": "Repo", "description": "Auto Servis \u2014 a Flask + SQLite car-service-shop management application targeting Raspberry Pi and Windows, with Serbian (Latin) UI.", "resource": "file:///D:/Service", "tags": ["flask", "sqlite", "car-service", "raspberry-pi", "python", "serbian"], "color": "#0ea5e9", "size": 50}}], "edges": [{"data": {"id": "architecture/analytics__files/app/reports", "source": "architecture/analytics", "target": "files/app/reports"}}, {"data": {"id": "architecture/analytics__files/app/models", "source": "architecture/analytics", "target": "files/app/models"}}, {"data": {"id": "architecture/analytics__modules/app/static/js", "source": "architecture/analytics", "target": "modules/app/static/js"}}, {"data": {"id": "architecture/build-and-deploy__modules/app", "source": "architecture/build-and-deploy", "target": "modules/app"}}, {"data": {"id": "architecture/build-and-deploy__architecture/scheduler", "source": "architecture/build-and-deploy", "target": "architecture/scheduler"}}, {"data": {"id": "architecture/build-and-deploy__files/app/models", "source": "architecture/build-and-deploy", "target": "files/app/models"}}, {"data": {"id": "architecture/build-and-deploy__architecture/security", "source": "architecture/build-and-deploy", "target": "architecture/security"}}, {"data": {"id": "architecture/configuration__modules/app", "source": "architecture/configuration", "target": "modules/app"}}, {"data": {"id": "architecture/configuration__architecture/security", "source": "architecture/configuration", "target": "architecture/security"}}, {"data": {"id": "architecture/configuration__architecture/scheduler", "source": "architecture/configuration", "target": "architecture/scheduler"}}, {"data": {"id": "architecture/configuration__files/app/backup", "source": "architecture/configuration", "target": "files/app/backup"}}, {"data": {"id": "architecture/configuration__overview", "source": "architecture/configuration", "target": "overview"}}, {"data": {"id": "architecture/data-flow__files/app/auth", "source": "architecture/data-flow", "target": "files/app/auth"}}, {"data": {"id": "architecture/data-flow__files/app/main", "source": "architecture/data-flow", "target": "files/app/main"}}, {"data": {"id": "architecture/data-flow__files/app/cars", "source": "architecture/data-flow", "target": "files/app/cars"}}, {"data": {"id": "architecture/data-flow__files/app/services", "source": "architecture/data-flow", "target": "files/app/services"}}, {"data": {"id": "architecture/data-flow__files/app/reports", "source": "architecture/data-flow", "target": "files/app/reports"}}, {"data": {"id": "architecture/data-flow__files/app/printing", "source": "architecture/data-flow", "target": "files/app/printing"}}, {"data": {"id": "architecture/data-flow__files/app/backup", "source": "architecture/data-flow", "target": "files/app/backup"}}, {"data": {"id": "architecture/data-flow__files/app/models", "source": "architecture/data-flow", "target": "files/app/models"}}, {"data": {"id": "architecture/data-flow__architecture/security", "source": "architecture/data-flow", "target": "architecture/security"}}, {"data": {"id": "architecture/data-flow__architecture/scheduler", "source": "architecture/data-flow", "target": "architecture/scheduler"}}, {"data": {"id": "architecture/data-flow__architecture/build-and-deploy", "source": "architecture/data-flow", "target": "architecture/build-and-deploy"}}, {"data": {"id": "architecture/deployment__architecture/scheduler", "source": "architecture/deployment", "target": "architecture/scheduler"}}, {"data": {"id": "architecture/deployment__architecture/configuration", "source": "architecture/deployment", "target": "architecture/configuration"}}, {"data": {"id": "architecture/deployment__files/app/backup", "source": "architecture/deployment", "target": "files/app/backup"}}, {"data": {"id": "architecture/plate-first-flow__files/app/services", "source": "architecture/plate-first-flow", "target": "files/app/services"}}, {"data": {"id": "architecture/plate-first-flow__files/app/cars", "source": "architecture/plate-first-flow", "target": "files/app/cars"}}, {"data": {"id": "architecture/plate-first-flow__modules/app/static/js", "source": "architecture/plate-first-flow", "target": "modules/app/static/js"}}, {"data": {"id": "architecture/plate-first-flow__files/app/printing", "source": "architecture/plate-first-flow", "target": "files/app/printing"}}, {"data": {"id": "architecture/pricing-model__files/app/reports", "source": "architecture/pricing-model", "target": "files/app/reports"}}, {"data": {"id": "architecture/pricing-model__files/app/printing", "source": "architecture/pricing-model", "target": "files/app/printing"}}, {"data": {"id": "architecture/pricing__files/app/reports", "source": "architecture/pricing", "target": "files/app/reports"}}, {"data": {"id": "architecture/pricing__files/app/models", "source": "architecture/pricing", "target": "files/app/models"}}, {"data": {"id": "architecture/pricing__files/app/printing", "source": "architecture/pricing", "target": "files/app/printing"}}, {"data": {"id": "architecture/pricing__files/app/main", "source": "architecture/pricing", "target": "files/app/main"}}, {"data": {"id": "architecture/pricing__files/app/utils", "source": "architecture/pricing", "target": "files/app/utils"}}, {"data": {"id": "architecture/scheduler-email__modules/app", "source": "architecture/scheduler-email", "target": "modules/app"}}, {"data": {"id": "architecture/scheduler-email__files/app/reports", "source": "architecture/scheduler-email", "target": "files/app/reports"}}, {"data": {"id": "architecture/scheduler-email__files/app/backup", "source": "architecture/scheduler-email", "target": "files/app/backup"}}, {"data": {"id": "architecture/scheduler-email__architecture/deployment", "source": "architecture/scheduler-email", "target": "architecture/deployment"}}, {"data": {"id": "architecture/scheduler__architecture/configuration", "source": "architecture/scheduler", "target": "architecture/configuration"}}, {"data": {"id": "architecture/scheduler__files/app/backup", "source": "architecture/scheduler", "target": "files/app/backup"}}, {"data": {"id": "architecture/scheduler__modules/app", "source": "architecture/scheduler", "target": "modules/app"}}, {"data": {"id": "architecture/scheduler__files/app/reports", "source": "architecture/scheduler", "target": "files/app/reports"}}, {"data": {"id": "architecture/security__files/app/auth", "source": "architecture/security", "target": "files/app/auth"}}, {"data": {"id": "architecture/security__modules/app", "source": "architecture/security", "target": "modules/app"}}, {"data": {"id": "architecture/security__architecture/configuration", "source": "architecture/security", "target": "architecture/configuration"}}, {"data": {"id": "architecture/security__files/app/main", "source": "architecture/security", "target": "files/app/main"}}, {"data": {"id": "architecture/security__files/app/backup", "source": "architecture/security", "target": "files/app/backup"}}, {"data": {"id": "files/_verify2__architecture/security", "source": "files/_verify2", "target": "architecture/security"}}, {"data": {"id": "files/_verify2__files/app/printing", "source": "files/_verify2", "target": "files/app/printing"}}, {"data": {"id": "files/_verify2__files/app/backup", "source": "files/_verify2", "target": "files/app/backup"}}, {"data": {"id": "files/_verify2__files/app/services", "source": "files/_verify2", "target": "files/app/services"}}, {"data": {"id": "files/_verify2__modules/app/static/js", "source": "files/_verify2", "target": "modules/app/static/js"}}, {"data": {"id": "files/_verify2__overview", "source": "files/_verify2", "target": "overview"}}, {"data": {"id": "files/app/auth__files/app/models", "source": "files/app/auth", "target": "files/app/models"}}, {"data": {"id": "files/app/auth__files/app/main", "source": "files/app/auth", "target": "files/app/main"}}, {"data": {"id": "files/app/auth__files/app/backup", "source": "files/app/auth", "target": "files/app/backup"}}, {"data": {"id": "files/app/auth__files/app/reports", "source": "files/app/auth", "target": "files/app/reports"}}, {"data": {"id": "files/app/cars__files/app/services", "source": "files/app/cars", "target": "files/app/services"}}, {"data": {"id": "files/app/cars__files/app/utils", "source": "files/app/cars", "target": "files/app/utils"}}, {"data": {"id": "files/app/cars__files/app/models", "source": "files/app/cars", "target": "files/app/models"}}, {"data": {"id": "files/app/cars__files/app/printing", "source": "files/app/cars", "target": "files/app/printing"}}, {"data": {"id": "files/app/main__files/app/models", "source": "files/app/main", "target": "files/app/models"}}, {"data": {"id": "files/app/main__files/app/utils", "source": "files/app/main", "target": "files/app/utils"}}, {"data": {"id": "files/app/main__files/app/auth", "source": "files/app/main", "target": "files/app/auth"}}, {"data": {"id": "files/app/models__files/app/main", "source": "files/app/models", "target": "files/app/main"}}, {"data": {"id": "files/app/models__files/app/reports", "source": "files/app/models", "target": "files/app/reports"}}, {"data": {"id": "files/app/models__files/app/printing", "source": "files/app/models", "target": "files/app/printing"}}, {"data": {"id": "files/app/models__files/app/services", "source": "files/app/models", "target": "files/app/services"}}, {"data": {"id": "files/app/models__files/app/cars", "source": "files/app/models", "target": "files/app/cars"}}, {"data": {"id": "files/app/models__files/app/auth", "source": "files/app/models", "target": "files/app/auth"}}, {"data": {"id": "files/app/printing__files/app/services", "source": "files/app/printing", "target": "files/app/services"}}, {"data": {"id": "files/app/printing__files/app/models", "source": "files/app/printing", "target": "files/app/models"}}, {"data": {"id": "files/app/printing__files/app/cars", "source": "files/app/printing", "target": "files/app/cars"}}, {"data": {"id": "files/app/reports__files/app/models", "source": "files/app/reports", "target": "files/app/models"}}, {"data": {"id": "files/app/reports__files/app/utils", "source": "files/app/reports", "target": "files/app/utils"}}, {"data": {"id": "files/app/services__files/app/models", "source": "files/app/services", "target": "files/app/models"}}, {"data": {"id": "files/app/services__files/app/cars", "source": "files/app/services", "target": "files/app/cars"}}, {"data": {"id": "files/app/services__files/app/reports", "source": "files/app/services", "target": "files/app/reports"}}, {"data": {"id": "files/app/services__files/app/printing", "source": "files/app/services", "target": "files/app/printing"}}, {"data": {"id": "files/app/utils__modules/app", "source": "files/app/utils", "target": "modules/app"}}, {"data": {"id": "files/app/utils__files/app/cars", "source": "files/app/utils", "target": "files/app/cars"}}, {"data": {"id": "files/app/utils__files/app/main", "source": "files/app/utils", "target": "files/app/main"}}, {"data": {"id": "files/app/utils__files/app/reports", "source": "files/app/utils", "target": "files/app/reports"}}, {"data": {"id": "modules/app__architecture/configuration", "source": "modules/app", "target": "architecture/configuration"}}, {"data": {"id": "modules/app__files/app/auth", "source": "modules/app", "target": "files/app/auth"}}, {"data": {"id": "modules/app__files/app/main", "source": "modules/app", "target": "files/app/main"}}, {"data": {"id": "modules/app__files/app/cars", "source": "modules/app", "target": "files/app/cars"}}, {"data": {"id": "modules/app__files/app/services", "source": "modules/app", "target": "files/app/services"}}, {"data": {"id": "modules/app__files/app/reports", "source": "modules/app", "target": "files/app/reports"}}, {"data": {"id": "modules/app__files/app/printing", "source": "modules/app", "target": "files/app/printing"}}, {"data": {"id": "modules/app__files/app/backup", "source": "modules/app", "target": "files/app/backup"}}, {"data": {"id": "modules/app__architecture/scheduler", "source": "modules/app", "target": "architecture/scheduler"}}, {"data": {"id": "modules/app__files/app/utils", "source": "modules/app", "target": "files/app/utils"}}, {"data": {"id": "overview__modules/app", "source": "overview", "target": "modules/app"}}, {"data": {"id": "overview__files/app/models", "source": "overview", "target": "files/app/models"}}, {"data": {"id": "overview__files/app/auth", "source": "overview", "target": "files/app/auth"}}, {"data": {"id": "overview__files/app/main", "source": "overview", "target": "files/app/main"}}, {"data": {"id": "overview__files/app/cars", "source": "overview", "target": "files/app/cars"}}, {"data": {"id": "overview__files/app/services", "source": "overview", "target": "files/app/services"}}, {"data": {"id": "overview__files/app/reports", "source": "overview", "target": "files/app/reports"}}, {"data": {"id": "overview__files/app/printing", "source": "overview", "target": "files/app/printing"}}, {"data": {"id": "overview__files/app/backup", "source": "overview", "target": "files/app/backup"}}, {"data": {"id": "overview__files/app/utils", "source": "overview", "target": "files/app/utils"}}, {"data": {"id": "overview__architecture/scheduler", "source": "overview", "target": "architecture/scheduler"}}, {"data": {"id": "overview__modules/app/static/js", "source": "overview", "target": "modules/app/static/js"}}, {"data": {"id": "overview__architecture/security", "source": "overview", "target": "architecture/security"}}, {"data": {"id": "overview__architecture/pricing", "source": "overview", "target": "architecture/pricing"}}, {"data": {"id": "overview__architecture/configuration", "source": "overview", "target": "architecture/configuration"}}, {"data": {"id": "overview__architecture/deployment", "source": "overview", "target": "architecture/deployment"}}], "bodies": {"architecture/analytics": "# Analytics\n\nThe analytics page (`/analytics`) provides interactive Chart.js dashboards for profit and parts-price analysis over a custom date range. It combines server-side data preparation (in `app/reports.py`) with client-side Chart.js rendering (in `app/static/js/analytics.js`).\n\n## Architecture\n\n```mermaid\nflowchart LR\n    User[\"Admin / Worker\"] -->|GET /analytics| Reports[\"reports.py: analytics()\"]\n    Reports --> BuildCharts[\"_build_charts()\"]\n    BuildCharts --> JSON[\"chartData JSON in template\"]\n    JSON --> AnalyticsJS[\"analytics.js\"]\n    AnalyticsJS --> TimeChart[\"Time Series (bar + line)\"]\n    AnalyticsJS --> StructChart[\"Revenue Structure (doughnut)\"]\n    AnalyticsJS --> PartsChart[\"Parts Comparison (bar)\"]\n    AnalyticsJS --> WorkerChart[\"Profit per Worker (horizontal bar)\"]\n```\n\n## Server-Side: `_build_charts()`\n\nLocated in `app/reports.py`, this function assembles chart data:\n\n1. **Time bucketing** \u2014 for ranges \u2264 62 days, creates daily buckets; for longer ranges, switches to monthly buckets. Each bucket accumulates total revenue and profit.\n2. **Labels** \u2014 daily: `\"5.7.\"` format; monthly: `\"jul 2026\"` using Serbian month abbreviations from `SR_MONTHS`.\n3. **Revenue structure** \u2014 splits total into parts (retail) and labor.\n4. **Parts comparison** \u2014 three bars: retail price, cost (with discount), and margin.\n5. **Per-worker breakdown** \u2014 only included when viewing the whole shop (`worker is None`); shows each worker's profit, sorted descending.\n\nThe resulting `charts` dict is serialized as JSON into a `<script id=\"chartData\">` element in the template.\n\n## Client-Side: `analytics.js`\n\nThe IIFE in `analytics.js` parses the JSON from `#chartData` and renders four charts:\n\n1. **`#chTime`** \u2014 combo chart with bar (revenue) and line (profit) datasets, time labels on x-axis, money formatting on y-axis using Serbian locale (`sr-RS`)\n2. **`#chStruct`** \u2014 doughnut chart with \"Delovi (prodajna)\" and \"Rad\" segments\n3. **`#chParts`** \u2014 bar chart with three colored bars: retail (blue), cost (red), margin (green)\n4. **`#chWorker`** \u2014 horizontal bar chart (only rendered when `d.byworker` is present), showing profit per worker\n\nAll tooltips use a custom `money()` formatter that displays values like `12.345 RSD` using the currency from the chart data.\n\n## Scope & Date Range\n\n- Workers see only their own data; admins can switch between \"me\", a specific worker, or \"all\"\n- Custom start/end dates via URL parameters (default: 1st of current month to today)\n- Scope resolution handled by `_resolve_scope()` in [Reports & Journals](../files/app/reports.md)\n\n## How It Connects\n\n- Data comes from [Reports & Journals](../files/app/reports.md) (`analytics()` route and `_build_charts()`)\n- Pricing properties from [Data Models](../files/app/models.md)\n- Chart rendering in [Frontend & Static Assets](../modules/app/static/js.md) (`analytics.js`)\n- Chart.js library bundled as `chart.umd.min.js` in static assets\n\n# Citations\n- app/reports.py:214-263\n- app/reports.py:19-78\n- app/static/js/analytics.js:1-74", "architecture/build-and-deploy": "# Deployment\n\nAuto Servis supports two deployment modes: production on a **Raspberry Pi Zero 2W** (or any Linux box) and development on **Windows**. Both use the same codebase.\n\n## Server Scripts\n\n### `serve.py` \u2014 Production Server\nUses **Waitress**, a pure-Python WSGI server (no C extensions needed):\n\n```\npython serve.py\n```\n\n- Listens on `0.0.0.0:8000` by default\n- Configurable via env vars: `HOST`, `PORT`, `THREADS` (default 4)\n- Calls `create_app()` from [App Factory](../modules/app.md)\n\n### `run.py` \u2014 Development Server\nUses Flask's built-in dev server with auto-reload and debug mode:\n\n```\npython run.py\n```\n\n- Listens on `0.0.0.0:8000`\n- Debug mode enabled (`app.run(debug=True)`)\n- Not for production use\n\n## Database Initialization: `init_db.py`\n\n```\npython init_db.py            # create tables only\npython init_db.py --demo     # create tables + seed demo data\npython init_db.py --reset    # drop all tables first (destructive!)\n```\n\nDemo data includes:\n- Two users: `admin` (admin123) and `radnik` (radnik123)\n- A company: \"Auto Servis Petrovi\u0107\" with address and contact\n- Two cars: BMW 320 (NS123AB) and VW Golf 7 (BG456CD)\n- Three service records with parts\n\n## Deployment Flow\n\n```mermaid\nflowchart TD\n    Clone[\"Clone / copy project\"] --> Venv[\"python3 -m venv .venv\"]\n    Venv --> Install[\"pip install -r requirements.txt\"]\n    Install --> Env[\"cp .env.example .env + edit\"]\n    Env --> InitDB[\"python init_db.py\"]\n    InitDB --> Mode{\"Target?\"}\n    Mode -->|Raspberry Pi| Systemd[\"sudo cp deploy/carservice.service\\n\u2192 /etc/systemd/system/\"]\n    Systemd --> Enable[\"sudo systemctl enable --now carservice\"]\n    Mode -->|Windows| Serve[\"python serve.py\"]\n    Mode -->|Windows Dev| RunDev[\"python run.py\"]\n```\n\n## Raspberry Pi Deployment\n\nFor a Raspberry Pi Zero 2W (Debian-based):\n\n1. Install Python: `sudo apt install python3-venv python3-pip`\n2. Clone to `/home/pi/carservice`\n3. Create venv + install deps\n4. Configure `.env` (especially `SECRET_KEY`, SMTP settings)\n5. Initialize DB: `.venv/bin/python init_db.py`\n6. Copy the systemd unit file and enable the service\n7. Access via `http://<pi-ip>:8000`\n\nFor automatic journal emails, set `ENABLE_SCHEDULER=true` in `.env`. See [Background Scheduler](scheduler.md).\n\n## Environment Configuration (`.env`)\n\nKey settings (see [App Factory & Configuration](../modules/app.md) for full list):\n\n| Variable | Required | Purpose |\n|----------|----------|---------|\n| `SECRET_KEY` | Yes (production) | Flask session signing |\n| `SMTP_HOST` | For email | SMTP server for journals |\n| `SMTP_PORT` | For email | Default 587 |\n| `SMTP_USER` / `SMTP_PASSWORD` | For email | SMTP credentials |\n| `ENABLE_SCHEDULER` | Optional | Auto journal/backup jobs |\n| `CURRENCY` | Optional | Display currency (default RSD) |\n| `PORT` | Optional | Server port (default 8000) |\n\n## Dependencies\n\nFrom `requirements.txt`:\n- Flask \u22653.0, Flask-SQLAlchemy \u22653.1, Flask-Login \u22650.6, Flask-WTF \u22651.2\n- SQLAlchemy \u22652.0, Werkzeug \u22653.0\n- Pillow \u226510.0 (image processing)\n- Waitress \u22653.0 (production WSGI)\n- APScheduler \u22653.10 (background jobs)\n- python-dotenv \u22651.0 (env file loading)\n- xhtml2pdf \u22650.2.11 (PDF generation)\n\n## How It Connects\n\n- `serve.py` and `run.py` both call `create_app()` from [App Factory & Configuration](../modules/app.md)\n- `init_db.py` imports models from [Data Models](../files/app/models.md) and extensions\n- Scheduler config documented in [Background Scheduler](scheduler.md)\n- Security settings in [Security Architecture](security.md)\n\n# Citations\n- serve.py:1-20\n- run.py:1-15\n- init_db.py:1-97\n- requirements.txt:1-12\n- README.md:42-59\n- README.md:73-89", "architecture/configuration": "# Configuration\n\n`app/config.py` defines the `Config` class that loads all settings from environment variables (or a `.env` file via `python-dotenv`). The app factory passes this class to `app.config.from_object()`.\n\n## Settings Reference\n\n### Core\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `SECRET_KEY` | `SECRET_KEY` | `\"promeni-me-u-produkciji\"` | Flask session signing key (warning logged if default) |\n| `SQLALCHEMY_DATABASE_URI` | `DATABASE_URL` | `sqlite:///instance/carservice.db` | Database connection string |\n\n### File Uploads\n\n| Setting | Default | Purpose |\n|---------|---------|---------|\n| `UPLOAD_FOLDER` | `instance/uploads/` | Root directory for car photos and company logo |\n| `MAX_CONTENT_LENGTH` | 8 MB | Maximum upload file size |\n\nUpload subdirectories (`cars/`, `logo/`) are created automatically by `create_app()`.\n\n### Backups\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `BACKUP_DIR` | \u2014 | `instance/backups/` | Directory for ZIP backup files |\n| `BACKUP_KEEP` | `BACKUP_KEEP` | 14 | Number of backups to retain |\n\n### Locale\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `CURRENCY` | `CURRENCY` | `\"RSD\"` | Currency code displayed in formatting |\n\n### Security\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `SESSION_COOKIE_HTTPONLY` | \u2014 | `True` | Prevent JS access to session cookie |\n| `SESSION_COOKIE_SAMESITE` | \u2014 | `\"Lax\"` | SameSite cookie policy |\n| `SESSION_COOKIE_SECURE` | `SECURE_COOKIES` | `False` | Set `True` for HTTPS |\n| `PERMANENT_SESSION_LIFETIME` | `SESSION_HOURS` | 12h | Session expiry |\n| `LOGIN_MAX_ATTEMPTS` | `LOGIN_MAX_ATTEMPTS` | 8 | Failed logins before lockout |\n| `LOGIN_LOCKOUT_MINUTES` | `LOGIN_LOCKOUT_MINUTES` | 10 | Lockout duration |\n| `TRUST_PROXY` | `TRUST_PROXY` | `False` | Trust X-Forwarded-* headers (nginx on Pi) |\n\n### SMTP (E-mail)\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `SMTP_HOST` | `SMTP_HOST` | `\"\"` | SMTP server hostname |\n| `SMTP_PORT` | `SMTP_PORT` | 587 | SMTP port (465 = SSL, 587 = STARTTLS) |\n| `SMTP_USER` | `SMTP_USER` | `\"\"` | SMTP login username |\n| `SMTP_PASSWORD` | `SMTP_PASSWORD` | `\"\"` | SMTP login password |\n| `SMTP_FROM` | `SMTP_FROM` | `\"servis@example.com\"` | Sender address |\n| `SMTP_TLS` | `SMTP_TLS` | `True` | Use STARTTLS |\n| `ADMIN_EMAIL` | `ADMIN_EMAIL` | `\"\"` | Admin notification address |\n\n### Scheduler\n\n| Setting | Env Var | Default | Purpose |\n|---------|---------|---------|---------|\n| `ENABLE_SCHEDULER` | `ENABLE_SCHEDULER` | `False` | Enable APScheduler background jobs |\n\n### SQLite Engine Options\n\nConfigured in `SQLALCHEMY_ENGINE_OPTIONS`:\n- `connect_args.timeout = 30` \u2014 SQLite busy timeout\n- `pool_pre_ping = True` \u2014 connection health check\n\nAdditional SQLite pragmas are set via an engine event listener in `__init__.py`:\n- `journal_mode=WAL` \u2014 write-ahead logging\n- `foreign_keys=ON` \u2014 enforce FK constraints\n- `busy_timeout=30000` \u2014 30-second wait\n\n## Directory Layout\n\n```\ninstance/\n  carservice.db        SQLite database\n  uploads/\n    cars/              Car photo uploads\n    logo/              Company logo uploads\n  backups/             ZIP backup files\n```\n\n## Key Connections\n\n- [Application Factory](../modules/app.md) \u2014 loads Config, creates directories, applies pragmas\n- [Security Architecture](security.md) \u2014 session cookie and throttle settings\n- [Background Scheduler](scheduler.md) \u2014 `ENABLE_SCHEDULER` toggle\n- [Backup System](../files/app/backup.md) \u2014 `BACKUP_DIR`, `BACKUP_KEEP`\n- [Overview](../overview.md)\n\n# Citations\n\n- app/config.py:1-4 (module docstring)\n- app/config.py:10-13 (BASE_DIR, INSTANCE_DIR, dotenv loading)\n- app/config.py:16-17 (_bool helper for env var parsing)\n- app/config.py:20-21 (SECRET_KEY with default warning value)\n- app/config.py:23-28 (SQLALCHEMY_DATABASE_URI and engine options)\n- app/config.py:36-37 (UPLOAD_FOLDER, MAX_CONTENT_LENGTH)\n- app/config.py:40-41 (BACKUP_DIR, BACKUP_KEEP)\n- app/config.py:44 (CURRENCY)\n- app/config.py:47-55 (session cookie and security settings)\n- app/config.py:57-59 (LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_MINUTES, TRUST_PROXY)\n- app/config.py:61-68 (SMTP settings)\n- app/config.py:71 (ENABLE_SCHEDULER)\n- app/__init__.py:18-28 (SQLite pragma listener)", "architecture/data-flow": "# Data Flow\n\nThis page traces the key data flows through the Auto Servis application \u2014 from HTTP request to database and back.\n\n## Request Lifecycle\n\n```mermaid\nsequenceDiagram\n    participant Browser\n    participant Waitress\n    participant Flask as Flask App\n    participant BP as Blueprint Handler\n    participant DB as SQLite (WAL)\n\n    Browser->>Waitress: HTTP Request\n    Waitress->>Flask: WSGI call\n    Flask->>Flask: before_request (deactivation check)\n    Flask->>Flask: CSRF validation (POST)\n    Flask->>BP: Route dispatch\n    BP->>DB: SQLAlchemy query / commit\n    DB-->>BP: Result set\n    BP-->>Flask: render_template()\n    Flask->>Flask: after_request (security headers)\n    Flask-->>Waitress: HTTP Response\n    Waitress-->>Browser: HTML / PDF / JSON\n```\n\n## Plate-First Service Creation\n\nThe primary business workflow \u2014 creating a new service record:\n\n```mermaid\nsequenceDiagram\n    participant W as Worker\n    participant Start as /service/start\n    participant Cars as /car/new\n    participant New as /service/new\n    participant DB as SQLite\n\n    W->>Start: POST (plate: \"NS123AB\")\n    Start->>DB: Car.query.filter_by(plate)\n    alt Car found\n        DB-->>Start: Car object\n        Start-->>W: Redirect to /service/new?car_id=X\n    else Car not found\n        DB-->>Start: None\n        Start-->>W: Redirect to /car/new?plate=NS123AB&then=service\n        W->>Cars: POST (car details)\n        Cars->>DB: INSERT Car\n        Cars-->>W: Redirect to /service/new?car_id=X\n    end\n    W->>New: POST (date, mileage, labor, parts[])\n    New->>DB: INSERT Service\n    New->>DB: INSERT Parts (from form arrays)\n    New->>DB: UPDATE Car.mileage (recompute)\n    New-->>W: Redirect to /service/<id>\n```\n\n## Journal Generation Flow\n\nHow journals are produced (both on-demand and scheduled):\n\n```mermaid\nflowchart TD\n    Trigger{\"Source\"} -->|Web UI| ReportsIndex[\"/reports GET\"]\n    Trigger -->|Scheduler| Dispatch[\"_dispatch()\"]\n    ReportsIndex --> ComposeJournal[\"compose_journal(period, ref, worker)\"]\n    Dispatch --> ComposeJournal\n    ComposeJournal --> PeriodRange[\"period_range() \u2192 (start, end)\"]\n    PeriodRange --> QueryServices[\"Service.query.filter(date between)\"]\n    QueryServices --> Summarize[\"summarize(services)\"]\n    Summarize --> ByWorker{\"worker is None?\"}\n    ByWorker -->|yes| GroupByWorker[\"Group by worker, summarize each\"]\n    ByWorker -->|no| JournalDict[\"Return journal dict\"]\n    GroupByWorker --> JournalDict\n    JournalDict -->|Web| RenderHTML[\"render reports/index.html\"]\n    JournalDict -->|Email| RenderEmail[\"render email/journal.html\"]\n    RenderEmail --> SendEmail[\"send_email() via SMTP\"]\n```\n\n## Print & PDF Pipeline\n\n```mermaid\nflowchart LR\n    Request[\"/print/service/1?mode=owner\"] --> Context[\"_service_context()\"]\n    Context --> Access{\"_can_access()?\"}\n    Access -->|no| Abort[\"403\"]\n    Access -->|yes| Template[\"render print/services.html\"]\n    Template --> BrowserPrint[\"Browser Print Dialog\"]\n\n    RequestPDF[\"/pdf/service/1?mode=owner\"] --> ContextPDF[\"_service_context()\"]\n    ContextPDF --> TemplatePDF[\"render print/pdf.html\"]\n    TemplatePDF --> xhtml2pdf[\"xhtml2pdf.pisa.CreatePDF()\"]\n    xhtml2pdf --> LinkCallback[\"_link_callback() maps URLs to paths\"]\n    xhtml2pdf --> PDFBytes[\"PDF bytes response\"]\n```\n\n## Data Access Patterns\n\n| Blueprint | Reads | Writes |\n|-----------|-------|--------|\n| `auth_bp` | User | User |\n| `main_bp` | Service, Car, Company | Company |\n| `cars_bp` | Car, Service | Car |\n| `services_bp` | Car, Service, Part | Service, Part, Car (mileage) |\n| `reports_bp` | Service, User | \u2014 |\n| `print_bp` | Service, Car | \u2014 |\n| `backup_bp` | \u2014 (raw SQLite) | Filesystem (zip) |\n\n## How It Connects\n\n- Blueprint details: [Authentication](../files/app/auth.md), [Dashboard](../files/app/main.md), [Cars](../files/app/cars.md), [Services](../files/app/services.md), [Reports](../files/app/reports.md), [Printing](../files/app/printing.md), [Backup](../files/app/backup.md)\n- Data model: [Data Models](../files/app/models.md)\n- Security hooks: [Security Architecture](security.md)\n- Scheduler trigger: [Background Scheduler](scheduler.md)\n- Server entry: [Deployment](build-and-deploy.md)\n\n# Citations\n- app/__init__.py:62-67\n- app/__init__.py:92-112\n- app/services.py:42-89\n- app/reports.py:120-160\n- app/printing.py:42-73\n- app/pdf.py:48-56", "architecture/deployment": "# Deployment\n\nAuto Servis supports two deployment targets: **Raspberry Pi Zero 2W** (production, as a systemd service) and **Windows** (development/testing).\n\n## Deployment Architecture\n\n```mermaid\nflowchart LR\n    subgraph Pi[\"Raspberry Pi Zero 2W\"]\n        systemd[\"systemd service\"]\n        Waitress[\"serve.py (Waitress)\"]\n        App[\"Flask App\"]\n        SQLite[\"SQLite DB\"]\n        systemd --> Waitress --> App --> SQLite\n    end\n\n    subgraph Win[\"Windows (Development)\"]\n        run[\"run.py (Flask debug)\"]\n        AppW[\"Flask App\"]\n        SQLiteW[\"SQLite DB\"]\n        run --> AppW --> SQLiteW\n    end\n\n    Browser[\"Browser\"] -->|HTTP :8000| Pi\n    BrowserW[\"Browser\"] -->|HTTP :8000| Win\n```\n\n## Production: Raspberry Pi\n\n### Setup Steps\n\n1. Install Python venv: `sudo apt install python3-venv python3-pip`\n2. Clone the repo to `/home/pi/carservice`\n3. Create virtualenv and install dependencies:\n   ```bash\n   python3 -m venv .venv\n   .venv/bin/pip install -r requirements.txt\n   ```\n4. Copy `.env.example` to `.env` and configure `SECRET_KEY`, SMTP settings, etc.\n5. Initialize the database: `.venv/bin/python init_db.py`\n6. Install the systemd service:\n   ```bash\n   sudo cp deploy/carservice.service /etc/systemd/system/\n   sudo systemctl daemon-reload\n   sudo systemctl enable --now carservice\n   ```\n\nThe app listens on port `8000` and is accessible from other devices on the network.\n\n### Production Server (`serve.py`)\n\nUses **Waitress** \u2014 a pure-Python WSGI server that works on both Linux and Windows:\n\n- Default: `0.0.0.0:8000` with 4 threads\n- Configurable via `HOST`, `PORT`, `THREADS` environment variables\n- No external web server (nginx) required, though ProxyFix is available when `TRUST_PROXY=true`\n\n### Automatic Journals + Backups\n\nSet `ENABLE_SCHEDULER=true` in `.env` to activate the [Background Scheduler](scheduler.md):\n- Daily journal at 20:00, weekly on Sundays, monthly on the last day\n- Nightly backup at 02:30\n\n## Development: Windows\n\n### Quick Start\n\nDouble-click `run_windows.bat` (creates venv, installs deps, seeds demo data, starts server).\n\nOr manually:\n```powershell\npython -m venv .venv\n.\\.venv\\Scripts\\activate\npip install -r requirements.txt\npython init_db.py --demo\npython run.py\n```\n\nOpen `http://127.0.0.1:8000`.\n\n### Development Server (`run.py`)\n\nUses Flask's built-in development server with `debug=True` (auto-reload on code changes).\n\n## Database Initialization (`init_db.py`)\n\n| Flag | Effect |\n|------|--------|\n| (none) | Create tables only |\n| `--demo` | Create tables + seed demo data |\n| `--reset` | Drop all tables first (destructive) |\n\n### Demo Data\n\nWhen `--demo` is used, seeds:\n- **Admin user:** `admin` / `admin123` (Marko Petrovi\u0107)\n- **Worker user:** `radnik` / `radnik123` (Jovan Jovanovi\u0107)\n- **Company:** Auto Servis Petrovi\u0107, Novi Sad\n- **2 cars:** BMW 320 (NS123AB) and VW Golf 7 (BG456CD)\n- **3 services** with realistic parts and labor\n\nWithout `--demo`, the database is empty \u2014 the first registered user becomes admin.\n\n## Environment Configuration\n\nSee [Configuration](configuration.md) for the full list of `.env` settings. Key production settings:\n\n- `SECRET_KEY` \u2014 **must change** from default\n- `SMTP_*` \u2014 required for journal e-mailing\n- `ENABLE_SCHEDULER` \u2014 `true` for automatic journals/backups\n- `SECURE_COOKIES` \u2014 `true` when serving over HTTPS\n- `TRUST_PROXY` \u2014 `true` when behind nginx\n\n## Connections\n\n- Server scripts \u2192 `serve.py`, `run.py`\n- DB initialization \u2192 `init_db.py`\n- Configuration \u2192 [Configuration](configuration.md)\n- Scheduler \u2192 [Background Scheduler](scheduler.md)\n- Backup CLI \u2192 [Backup System](../files/app/backup.md)\n\n# Citations\n\n- serve.py:1\n- serve.py:14\n- run.py:1\n- run.py:12\n- init_db.py:1\n- init_db.py:19\n- init_db.py:82\n- README.md:42\n- README.md:71\n- README.md:61", "architecture/plate-first-flow": "# Plate-First Service Flow\n\nThe plate-first flow is the primary operational workflow in Auto Servis. Instead of browsing a car list and then creating a service, the worker **starts by typing the car's license plate**. The system then determines whether the car exists and guides the worker to the right next step.\n\n## Flow Diagram\n\n```mermaid\nflowchart TD\n    Start[\"/service/start\"] -->|Worker enters plate| Normalise[\"_normalise_plate(): strip spaces, uppercase\"]\n    Normalise --> Query[\"Car.query.filter_by(plate)\"]\n    Query -->|Found| Flash1[\"Flash: Vozilo prona\u0111eno\"]\n    Flash1 --> NewService[\"/service/new?car_id=id\"]\n    Query -->|Not found| Flash2[\"Flash: Vozilo ne postoji. Registrujte ga.\"]\n    Flash2 --> NewCar[\"/car/new?plate=XX&then=service\"]\n    NewCar -->|Register car| SaveCar[\"Save Car to DB\"]\n    SaveCar -->|then=service| NewService\n    NewService -->|Fill form| ServiceForm[\"Date, mileage, labor, parts[]\"]\n    ServiceForm --> SaveService[\"Create Service + Part rows\"]\n    SaveService --> Recompute[\"_recompute_car_mileage()\"]\n    Recompute --> Detail[\"/service/id \u2014 Detail view\"]\n```\n\n## Step-by-Step\n\n### 1. Enter Plate (`/service/start`)\nThe worker navigates to the start page and enters a license plate. `_normalise_plate()` strips whitespace and uppercases the input (e.g. `\"ns 123 ab\"` \u2192 `\"NS123AB\"`).\n\n**Source**: [Service Records](../files/app/services.md) \u2014 `start()` route at `app/services.py:41`.\n\n### 2. Car Lookup\nThe system queries `Car.query.filter_by(plate=plate).first()`:\n- **Found** \u2192 flash success message, redirect to the new-service form with `car_id`\n- **Not found** \u2192 flash warning, redirect to [Car Management](../files/app/cars.md) new form with the plate pre-filled and `then=service` flag\n\n### 3. Car Registration (if needed)\nIf the car doesn't exist, the worker fills in owner info, specs, and optionally a photo. On save, because `then=service` is set, the system redirects directly to `/service/new?car_id=<new_car_id>` instead of the car detail page.\n\n**Source**: [Car Management](../files/app/cars.md) \u2014 `new()` route at `app/cars.py:45`.\n\n### 4. Service Form\nThe service form collects:\n- **Date** (defaults to today)\n- **Mileage** reading\n- **Labor price** and description\n- **Parts table** \u2014 dynamic rows managed by [service_form.js](../modules/app/static/js.md), each with name, quantity, retail price, and discounted price\n\n### 5. Save Service\n`_apply_service_form()` parses date, mileage, and labor from the form. `_rebuild_parts()` creates `Part` records from the parallel arrays `part_name[]`, `part_qty[]`, `part_price[]`, `part_disc[]`.\n\n### 6. Mileage Recomputation\nAfter saving, `_recompute_car_mileage(car)` updates the car's `mileage` field from its most recent service (by date desc, then id desc). This ensures that editing or deleting an older service never clobbers a newer reading.\n\n**Source**: [Service Records](../files/app/services.md) \u2014 `_recompute_car_mileage()` at `app/services.py:21`.\n\n### 7. Redirect to Detail\nThe worker lands on the service detail page showing the complete record, with options to [print](../files/app/printing.md), [edit](../files/app/services.md), or [export PDF](../files/app/printing.md).\n\n## Why Plate-First?\n\nIn a busy workshop, mechanics know the plate number but rarely the database ID. This flow minimises steps: one input field, automatic routing, and seamless integration of car registration when a new vehicle arrives.\n\n# Citations\n- app/services.py:41 (start route \u2014 plate entry point)\n- app/services.py:18 (_normalise_plate \u2014 strip + uppercase)\n- app/services.py:49 (Car.query.filter_by(plate) lookup)\n- app/services.py:53 (redirect to services.new when found)\n- app/services.py:56 (redirect to cars.new when not found, with then=service)\n- app/cars.py:45 (new route \u2014 prefill plate, then=service)\n- app/cars.py:78 (redirect to services.new after car creation)\n- app/services.py:61 (new route \u2014 create service)\n- app/services.py:21 (_recompute_car_mileage)", "architecture/pricing-model": "# Pricing & Profit Model\n\nAuto Servis uses a **dual-price system** to track both what the customer pays and what the shop actually spends on parts. This is the foundation of all financial reporting, printing, and analytics.\n\n## Price Structure\n\n```mermaid\nflowchart LR\n    Part[\"Part\"] --> Retail[\"price (retail)\"]\n    Part --> Discount[\"price_with_discount (shop cost)\"]\n    Retail --> LineFull[\"line_full = price \u00d7 qty\"]\n    Discount --> LineCost[\"line_cost = discount \u00d7 qty\"]\n    LineFull --> LineProfit[\"line_profit = line_full - line_cost\"]\n\n    Service[\"Service\"] --> Labor[\"labor_price\"]\n    LineFull --> TotalFull[\"total_full = labor + \u03a3 line_full\"]\n    LineProfit --> TotalProfit[\"total_profit = labor + \u03a3 line_profit\"]\n```\n\n## Per-Part Calculations\n\nEach `Part` record stores two prices:\n- **`price`** \u2014 the retail/full price charged to the customer (called \"cena bez popusta\" / \"price without discount\" in the UI)\n- **`price_with_discount`** \u2014 the shop's actual cost for the part (called \"cena sa popustom\" / \"price with discount\")\n\nThe naming reflects the shop's relationship with its parts suppliers: the shop gets a supplier discount, so its cost is the \"discounted\" price, while the customer pays the \"non-discounted\" (full retail) price.\n\nThree computed properties on `Part`:\n\n| Property | Formula | Meaning |\n|----------|---------|---------|\n| `line_full` | `price \u00d7 quantity` | What the customer pays for this part |\n| `line_cost` | `price_with_discount \u00d7 quantity` | What the shop pays for this part |\n| `line_profit` | `line_full - line_cost` | Shop's margin on this part |\n\n## Per-Service Calculations\n\nThe `Service` model aggregates parts and adds labor:\n\n| Property | Formula | Meaning |\n|----------|---------|---------|\n| `parts_total_full` | `\u03a3 part.line_full` | Total retail parts cost |\n| `parts_total_cost` | `\u03a3 part.line_cost` | Total shop parts cost |\n| `parts_profit` | `parts_total_full - parts_total_cost` | Total parts margin |\n| `total_full` | `labor_price + parts_total_full` | **Total invoice** (customer pays) |\n| `total_profit` | `labor_price + parts_profit` | **Shop profit** (labor is 100% profit) |\n\nNote that **labor is treated as pure profit** \u2014 there's no labour cost tracking.\n\n## Aggregation in Reports\n\nThe `summarize()` function in [Reports & Analytics](../files/app/reports.md) aggregates across services:\n\n```python\n{\n    \"count\":        len(services),\n    \"parts_full\":   sum(s.parts_total_full for s in services),\n    \"parts_cost\":   sum(s.parts_total_cost for s in services),\n    \"parts_profit\": sum(s.parts_profit for s in services),\n    \"labor\":        sum(s.labor_price for s in services),\n    \"revenue\":      sum(s.total_full for s in services),\n    \"profit\":       sum(s.total_profit for s in services),\n}\n```\n\nThis feeds:\n- **Journals** \u2014 daily/weekly/monthly summaries with total revenue and profit\n- **Analytics charts** \u2014 revenue/profit over time, revenue structure, parts margin analysis, per-worker profit\n\n## Printing Impact\n\nThe dual-price system directly controls what appears on printed documents (see [Printing & PDF Export](../files/app/printing.md)):\n\n| Element | Customer Copy | Owner Copy |\n|---------|--------------|------------|\n| Part retail price | \u2713 | \u2713 |\n| Part discount price | \u2717 | \u2713 |\n| Part margin | \u2717 | \u2713 |\n| Labor price | \u2717 | \u2713 |\n| Total for payment | \u2713 (parts only) | \u2713 (parts + labor) |\n| Profit | \u2717 | \u2713 |\n\n## Design Decisions\n\n1. **Computed properties, not stored columns** \u2014 all profit/total fields are `@property` decorators on the models. This avoids stale data and ensures consistency, at the cost of computing sums on every access. Acceptable for a small shop's volume.\n\n2. **Labor = 100% margin** \u2014 the app doesn't track the mechanic's hourly cost. Labor price goes entirely to profit. This simplifies the model while matching how many small shops think about pricing.\n\n3. **No tax tracking** \u2014 all prices are treated as final amounts. Tax/VAT handling is outside the scope.\n\n# Citations\n- app/models.py:127 (Part class \u2014 price, price_with_discount)\n- app/models.py:135 (Part.line_full property)\n- app/models.py:139 (Part.line_cost property)\n- app/models.py:143 (Part.line_profit property)\n- app/models.py:106 (Service.parts_total_full property)\n- app/models.py:110 (Service.parts_total_cost property)\n- app/models.py:114 (Service.parts_profit property)\n- app/models.py:118 (Service.total_full property)\n- app/models.py:122 (Service.total_profit property)\n- app/reports.py:79 (summarize function \u2014 aggregation)\n- README.md:108 (pricing model documentation)", "architecture/pricing": "# Pricing & Profit Model\n\nAuto Servis uses a dual-price system for parts to track both what the customer pays and what the workshop's actual cost is. This enables accurate profit calculation at every level.\n\n## The Two Prices\n\nEvery `Part` has two price fields:\n\n| Field | Meaning | Who pays it |\n|-------|---------|-------------|\n| `price` | Retail / full price (without discount) | Customer |\n| `price_with_discount` | Discounted / cost price | Workshop (supplier cost) |\n\nThe **margin on parts** is the difference: `price - price_with_discount`.\n\n## Calculation Flow\n\n```mermaid\nflowchart TD\n    Part[\"Part\"]\n    LineFull[\"line_full = price \u00d7 quantity\"]\n    LineCost[\"line_cost = price_with_discount \u00d7 quantity\"]\n    LineProfit[\"line_profit = line_full - line_cost\"]\n\n    Service[\"Service\"]\n    PartsFull[\"parts_total_full = \u03a3 line_full\"]\n    PartsCost[\"parts_total_cost = \u03a3 line_cost\"]\n    PartsProfit[\"parts_profit = parts_total_full - parts_total_cost\"]\n    TotalFull[\"total_full = labor_price + parts_total_full\"]\n    TotalProfit[\"total_profit = labor_price + parts_profit\"]\n\n    Part --> LineFull & LineCost & LineProfit\n    LineFull --> PartsFull\n    LineCost --> PartsCost\n    PartsFull --> PartsProfit\n    PartsCost --> PartsProfit\n    PartsFull --> TotalFull\n    PartsProfit --> TotalProfit\n\n    Reports[\"summarize()\"]\n    TotalFull --> Reports\n    TotalProfit --> Reports\n```\n\n### Part Level\n\n- `line_full` = `price \u00d7 quantity` \u2014 what the customer pays for this line\n- `line_cost` = `price_with_discount \u00d7 quantity` \u2014 workshop's cost\n- `line_profit` = `line_full - line_cost` \u2014 margin on this part\n\n### Service Level\n\n- `parts_total_full` = sum of all `line_full` \u2014 total parts at retail\n- `parts_total_cost` = sum of all `line_cost` \u2014 total parts at cost\n- `parts_profit` = `parts_total_full - parts_total_cost` \u2014 total parts margin\n- `total_full` = `labor_price + parts_total_full` \u2014 **what the customer pays**\n- `total_profit` = `labor_price + parts_profit` \u2014 **workshop profit**\n\nNote: labor is treated as 100% profit (no labor cost tracking).\n\n### Report Level\n\n`summarize()` in [Reports & Analytics](../files/app/reports.md) aggregates across multiple services:\n\n| Metric | Formula |\n|--------|---------|\n| `count` | Number of services |\n| `parts_full` | \u03a3 `parts_total_full` |\n| `parts_cost` | \u03a3 `parts_total_cost` |\n| `parts_profit` | \u03a3 `parts_profit` |\n| `labor` | \u03a3 `labor_price` |\n| `revenue` | \u03a3 `total_full` |\n| `profit` | \u03a3 `total_profit` |\n\n## How Pricing Appears in Output\n\n### Customer Print Copy\n\nShows parts at **retail price only** (`price \u00d7 quantity`). No labor price, no discounted prices, no profit. The customer sees only what they're paying for parts.\n\n### Owner Print Copy\n\nShows **both prices** for each part (retail and discounted), labor price, and total profit. Full financial transparency for the workshop owner.\n\n### Dashboard\n\nShows `total_full` (revenue) and `total_profit` for today and the current month.\n\n### Analytics Charts\n\n- **Revenue structure:** parts (retail) vs. labor\n- **Parts comparison:** retail vs. cost vs. margin\n- **Revenue/profit over time:** `total_full` and `total_profit` per day/month\n\n## Connections\n\n- Model properties \u2192 [Data Models](../files/app/models.md) (`Service`, `Part`)\n- Report aggregation \u2192 [Reports & Analytics](../files/app/reports.md) (`summarize`)\n- Print formatting \u2192 [Printing & PDF Export](../files/app/printing.md)\n- Dashboard stats \u2192 [Dashboard & Setup](../files/app/main.md)\n- Currency display \u2192 [Utilities](../files/app/utils.md) (`format_currency`)\n\n# Citations\n\n- app/models.py:105\n- app/models.py:109\n- app/models.py:113\n- app/models.py:117\n- app/models.py:121\n- app/models.py:126\n- app/models.py:134\n- app/models.py:140\n- app/models.py:144\n- app/models.py:148\n- app/reports.py:80", "architecture/scheduler-email": "# Scheduler & Email\n\nAuto Servis can run background jobs for automatic journal delivery and nightly database backups. This is powered by **APScheduler** (`BackgroundScheduler`) and configured via the `ENABLE_SCHEDULER` setting.\n\n## Scheduler (`app/scheduler.py`)\n\n### `start_scheduler(app)`\n\nCalled from [App Factory](../modules/app.md) when `ENABLE_SCHEDULER=true`. Creates a `BackgroundScheduler` with timezone `Europe/Belgrade` and registers four cron jobs:\n\n| Job ID | Schedule | Action |\n|--------|----------|--------|\n| `daily` | Every day at 20:00 | Send daily journals |\n| `weekly` | Every Sunday at 20:05 | Send weekly journals |\n| `monthly` | Last day of month at 20:10 | Send monthly journals |\n| `backup` | Every day at 02:30 | Create a database backup |\n\n### `_dispatch(app, period, ref)`\n\nThe journal dispatch function, called by the three journal jobs:\n\n1. **Per-worker journals** \u2014 iterates all active users. For each worker with an email and at least one service in the period, calls `compose_journal()` from [Reports & Analytics](../files/app/reports.md) and sends the rendered HTML via `send_email()`. Workers receive only their own journal.\n\n2. **Overall journal** \u2014 generates a whole-shop journal (`worker=None`) and sends it to all active admins. This summary includes a per-worker breakdown.\n\nErrors are logged but don't crash the scheduler \u2014 each send is wrapped in a `try/except`.\n\n### `_do_backup(app)`\n\nCalls `create_backup()` from [Backup System](../files/app/backup.md) inside an app context. Errors are logged as warnings.\n\n## Job Flow\n\n```mermaid\nflowchart TD\n    Scheduler[\"APScheduler (Europe/Belgrade)\"]\n    Scheduler -->|20:00 daily| Daily[\"_dispatch('day')\"]\n    Scheduler -->|20:05 Sunday| Weekly[\"_dispatch('week')\"]\n    Scheduler -->|20:10 last day| Monthly[\"_dispatch('month')\"]\n    Scheduler -->|02:30 daily| Backup[\"_do_backup()\"]\n\n    Daily --> PerWorker[\"For each active user\"]\n    PerWorker --> ComposeJ[\"compose_journal(period, ref, worker)\"]\n    ComposeJ --> RenderHTML[\"render_template('email/journal.html')\"]\n    RenderHTML --> SendEmail[\"send_email(worker.email, ...)\"]\n\n    Daily --> Overall[\"compose_journal(period, ref, worker=None)\"]\n    Overall --> RenderHTML2[\"render_template('email/journal.html')\"]\n    RenderHTML2 --> SendAdmins[\"send_email(admin_emails, ...)\"]\n\n    Backup --> CreateBackup[\"create_backup()\"]\n```\n\n## Email Utility (`app/email_utils.py`)\n\n### `send_email(to_addrs, subject, html_body)`\n\nA thin SMTP wrapper:\n- Reads SMTP config from the app: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS`\n- Creates a `MIMEMultipart(\"alternative\")` message with an HTML body\n- For port 465: uses `SMTP_SSL`; otherwise `SMTP` with optional `STARTTLS`\n- Authenticates if `SMTP_USER` is set\n- Raises `RuntimeError` if `SMTP_HOST` is empty or no recipients have email addresses\n\n## Configuration\n\n| Setting | Default | Purpose |\n|---------|---------|---------|\n| `ENABLE_SCHEDULER` | `false` | Master toggle for background jobs |\n| `SMTP_HOST` | (empty) | SMTP server hostname |\n| `SMTP_PORT` | `587` | SMTP port (587 for STARTTLS, 465 for SSL) |\n| `SMTP_USER` | (empty) | SMTP authentication username |\n| `SMTP_PASSWORD` | (empty) | SMTP authentication password |\n| `SMTP_FROM` | `servis@example.com` | Sender email address |\n| `SMTP_TLS` | `true` | Enable STARTTLS |\n\n## Deployment Notes\n\n- On the **Raspberry Pi**, `ENABLE_SCHEDULER=true` is set in the systemd service file, so journals and backups run automatically.\n- On **Windows** (development), the scheduler is off by default. Journals can still be sent manually via the [Reports](../files/app/reports.md) UI.\n- As an alternative to the built-in scheduler, a systemd timer or cron job can call the `/reports/send` endpoint or the `backup.py` CLI script (see [Deployment](deployment.md)).\n\n# Citations\n- app/scheduler.py:49 (start_scheduler \u2014 cron job registration)\n- app/scheduler.py:53 (daily job at 20:00)\n- app/scheduler.py:55 (weekly job at 20:05 Sunday)\n- app/scheduler.py:57 (monthly job on last day)\n- app/scheduler.py:59 (backup job at 02:30)\n- app/scheduler.py:14 (_dispatch \u2014 per-worker + overall journal sending)\n- app/scheduler.py:64 (_do_backup \u2014 backup wrapper)\n- app/email_utils.py:9 (send_email function)\n- app/email_utils.py:28 (SMTP_SSL for port 465, else SMTP + STARTTLS)\n- app/config.py:57 (SMTP settings)\n- app/config.py:65 (ENABLE_SCHEDULER setting)", "architecture/scheduler": "# Background Scheduler\n\n`app/scheduler.py` provides an optional APScheduler-based background scheduler that automates journal e-mailing and database backups. It is enabled by setting `ENABLE_SCHEDULER=true` in the environment (see [Configuration](configuration.md)).\n\n## Scheduled Jobs\n\n| Job ID | Schedule | Timezone | Action |\n|--------|----------|----------|--------|\n| `daily` | Every day at 20:00 | Europe/Belgrade | E-mail daily journal |\n| `weekly` | Every Sunday at 20:05 | Europe/Belgrade | E-mail weekly journal |\n| `monthly` | Last day of month at 20:10 | Europe/Belgrade | E-mail monthly journal |\n| `backup` | Every day at 02:30 | Europe/Belgrade | Create database backup |\n\n## Journal Dispatch (`_dispatch`)\n\nFor each scheduled journal period, `_dispatch()`:\n\n1. **Per-worker journals:** iterates all active users, calls `compose_journal()` for each, and sends the result to the worker's e-mail address. Skipped if the worker has no e-mail or zero services in the period.\n2. **Overall journal:** calls `compose_journal()` with `worker=None` (shop-wide), and sends it to all active admin e-mail addresses.\n\n```mermaid\nsequenceDiagram\n    participant APScheduler\n    participant _dispatch\n    participant compose_journal\n    participant send_email\n    participant SMTP\n\n    APScheduler->>_dispatch: Trigger (daily/weekly/monthly)\n    loop Each active worker\n        _dispatch->>compose_journal: period, ref, worker\n        compose_journal-->>_dispatch: journal data\n        alt count > 0 and has email\n            _dispatch->>send_email: worker email, subject, HTML\n            send_email->>SMTP: Send\n        end\n    end\n    _dispatch->>compose_journal: period, ref, worker=None\n    compose_journal-->>_dispatch: overall journal\n    _dispatch->>send_email: admin emails, subject, HTML\n    send_email->>SMTP: Send\n```\n\n## Backup Job (`_do_backup`)\n\nCalls `create_backup()` from [Backup System](../files/app/backup.md) within an app context. Logs success or failure.\n\n## Initialization\n\n`start_scheduler(app)` creates a `BackgroundScheduler` with `timezone=\"Europe/Belgrade\"`, registers all four jobs, and starts it. Called from `create_app()` in the [Application Factory](../modules/app.md) when `ENABLE_SCHEDULER` is truthy.\n\nThe scheduler runs in the Waitress process. On the Pi, this keeps everything self-contained without needing external cron or systemd timers.\n\n## Error Handling\n\nEach job catches all exceptions and logs warnings rather than crashing the scheduler, ensuring one failed e-mail doesn't prevent subsequent jobs from running.\n\n## Connections\n\n- Journal logic from \u2192 [Reports & Analytics](../files/app/reports.md) (`compose_journal`)\n- E-mail sending \u2192 `app/email_utils.py`\n- Backup function \u2192 [Backup System](../files/app/backup.md) (`create_backup`)\n- Enabled via \u2192 [Configuration](configuration.md) (`ENABLE_SCHEDULER`)\n- Started by \u2192 [Application Factory](../modules/app.md)\n\n# Citations\n\n- app/scheduler.py:1\n- app/scheduler.py:14\n- app/scheduler.py:22\n- app/scheduler.py:37\n- app/scheduler.py:51\n- app/scheduler.py:58\n- app/scheduler.py:67", "architecture/security": "# Security Architecture\n\nAuto Servis implements multiple layers of security appropriate for a small-shop web application running on a local network (Raspberry Pi) or the internet.\n\n## Security Layers\n\n```mermaid\nflowchart TD\n    Request[\"Incoming Request\"]\n    CSRF[\"CSRF Token Check\\n(Flask-WTF)\"]\n    Throttle[\"Login Throttle\\n(IP-based, in-memory)\"]\n    Auth[\"Flask-Login\\n(@login_required)\"]\n    Admin[\"@admin_required\\n(security.py)\"]\n    Deactivated[\"Deactivated User Check\\n(before_request)\"]\n    Headers[\"Security Headers\\n(after_request)\"]\n    Response[\"Response\"]\n\n    Request --> CSRF\n    CSRF --> Throttle\n    Throttle --> Auth\n    Auth --> Deactivated\n    Deactivated --> Admin\n    Admin --> Headers\n    Headers --> Response\n```\n\n## CSRF Protection\n\nGlobal CSRF protection via `CSRFProtect` (Flask-WTF):\n- All forms include a `csrf_token` hidden field\n- POST requests without a valid token receive HTTP 400 with a dedicated error template (`errors/csrf.html`)\n- Token lifetime set to `None` (valid for the entire session, not time-limited)\n\n## Login Throttling\n\nImplemented in `app/auth.py` using an in-memory dictionary (`_login_failures`) keyed by client IP:\n\n- After `LOGIN_MAX_ATTEMPTS` (default 8) failed attempts within `LOGIN_LOCKOUT_MINUTES` (default 10), the IP is temporarily blocked\n- Successful login clears the failure history for that IP\n- Resets on server restart (appropriate for a single-process Waitress deployment)\n\nSee [Authentication & Users](../files/app/auth.md) for details.\n\n## Authorization\n\n### `@login_required`\n\nFlask-Login's decorator, applied to all routes except `/login` and `/register`. Unauthenticated users are redirected to the login page with a Serbian warning message.\n\n### `@admin_required`\n\nCustom decorator in `app/security.py`:\n\n```python\ndef admin_required(view):\n    @wraps(view)\n    def wrapped(*args, **kwargs):\n        if not current_user.is_authenticated or not current_user.is_admin:\n            abort(403)\n        return view(*args, **kwargs)\n    return wrapped\n```\n\nApplied to: company setup, user management, backup management.\n\n### Row-Level Access\n\nWorkers can only view/edit/delete their own services. Enforced by `_can_access()` helpers in `services.py` and `printing.py`.\n\n## Deactivated User Ejection\n\nA `before_request` hook in the [Application Factory](../modules/app.md) checks if the current user's `active` flag is `False` and logs them out immediately. This prevents deactivated users from continuing to use an existing session.\n\n## Security Response Headers\n\nApplied via `after_request` in the application factory:\n\n| Header | Value | Purpose |\n|--------|-------|---------|\n| `X-Content-Type-Options` | `nosniff` | Prevent MIME-type sniffing |\n| `X-Frame-Options` | `SAMEORIGIN` | Prevent clickjacking |\n| `Referrer-Policy` | `same-origin` | Limit referrer leakage |\n| `Content-Security-Policy` | `default-src 'self'; img-src 'self' data:; ...` | Restrict resource loading |\n\n## Session Hardening\n\nFrom [Configuration](configuration.md):\n\n| Setting | Value | Effect |\n|---------|-------|--------|\n| `SESSION_COOKIE_HTTPONLY` | `True` | JS cannot read session cookie |\n| `SESSION_COOKIE_SAMESITE` | `Lax` | Cross-site request protection |\n| `SESSION_COOKIE_SECURE` | `False` (set `True` for HTTPS) | Cookie sent only over HTTPS |\n| `REMEMBER_COOKIE_HTTPONLY` | `True` | Remember-me cookie also HttpOnly |\n| `PERMANENT_SESSION_LIFETIME` | 12 hours | Session expiration |\n\n## Open Redirect Prevention\n\nIn `auth.py`, the `next` parameter after login is validated: only local redirects (starting with `/`) are allowed.\n\n## Download Security\n\nThe backup download endpoint validates filenames against `^backup_\\\\d{8}_\\\\d{6}\\\\.zip$` to prevent path traversal.\n\n## Connections\n\n- CSRF extension \u2192 [Application Factory](../modules/app.md) (`extensions.py`)\n- Throttling \u2192 [Authentication & Users](../files/app/auth.md)\n- Config \u2192 [Configuration](configuration.md)\n- `admin_required` used by \u2192 [Dashboard & Setup](../files/app/main.md), [Authentication](../files/app/auth.md), [Backup](../files/app/backup.md)\n\n# Citations\n\n- app/security.py:1\n- app/security.py:8\n- app/__init__.py:92\n- app/__init__.py:100\n- app/__init__.py:106\n- app/auth.py:20\n- app/auth.py:26\n- app/auth.py:63\n- app/config.py:49\n- app/extensions.py:7", "files/_verify2": "# Verification Tests\n\n`_verify2.py` is a standalone integration test script that exercises the application end-to-end using Flask's test client. It validates CSRF protection, page rendering, PDF generation, backup operations, security headers, and data integrity.\n\n## How It Works\n\nThe script creates the app via `create_app()`, obtains a test client, and runs a series of `check(label, condition)` assertions. Each check prints `PASS` or `FAIL`. The final line reports `ALL PASS` or `SOME FAILED`.\n\nA helper `token(path)` extracts the CSRF token from a page's HTML by regex-matching the `csrf_token` hidden input.\n\n## Test Categories\n\n### CSRF Protection\n- Verifies the login page exposes a CSRF token\n- Confirms POST without token returns 400\n- Confirms POST with valid token succeeds and logs in\n\n### Page Rendering\nTests that all major pages return HTTP 200:\n- `/` (dashboard), `/services`, `/cars`, `/car/1`, `/service/1`\n- `/reports`, `/analytics`, `/users`, `/setup`, `/backup`\n\n### Analytics Charts\nVerifies the analytics page embeds:\n- `id=\"chartData\"` \u2014 the JSON data block\n- `chart.umd.min.js` \u2014 Chart.js library\n- `analytics.js` \u2014 custom chart renderer\n\n### Dark Theme\nChecks the dashboard includes:\n- `id=\"themeToggle\"` button\n- `theme.js` script\n- `data-bs-theme` attribute on `<html>`\n\n### Security Headers\nValidates `X-Content-Type-Options: nosniff` and `Content-Security-Policy` presence.\n\n### Logo Upload\nGenerates a synthetic PNG via Pillow, uploads it through `/setup`, and validates the flow.\n\n### PDF Export\nTests four PDF endpoints with both customer and owner modes:\n- `/pdf/service/1?mode=customer` and `?mode=owner`\n- `/pdf/car/1?mode=customer` and `?mode=owner`\n\nVerifies: status 200, `application/pdf` mimetype, valid `%PDF` header, and DejaVu font embedding (for Serbian glyphs).\n\n### Backup Operations\n- Creates a backup via POST to `/backup/create`\n- Lists backups and finds the new file\n- Downloads the backup ZIP\n- Verifies ZIP contains `carservice.db` and `uploads/` entries\n- Tests path traversal rejection (bad filename returns 400/404)\n\n### Service Creation & Mileage\n- Creates a service with CSRF token, setting mileage to 150000\n- Verifies the car's detail page shows the updated mileage\n\n## Key Connections\n\n- [Security Architecture](../architecture/security.md) \u2014 CSRF and headers tested here\n- [Printing & PDF Export](../files/app/printing.md) \u2014 PDF generation tested\n- [Backup System](../files/app/backup.md) \u2014 backup create/download/traversal tested\n- [Service Records](../files/app/services.md) \u2014 service creation and mileage tested\n- [Frontend Assets](../modules/app/static/js.md) \u2014 analytics and theme assets verified\n- [Overview](../overview.md)\n\n# Citations\n\n- _verify2.py:1-3 (imports and app creation)\n- _verify2.py:5-6 (test client creation)\n- _verify2.py:8-10 (check helper function)\n- _verify2.py:12-16 (token extraction helper)\n- _verify2.py:18-26 (CSRF tests \u2014 without/with token)\n- _verify2.py:28-31 (page rendering tests for all major routes)\n- _verify2.py:33-36 (analytics chart data verification)\n- _verify2.py:38-40 (dark theme toggle verification)\n- _verify2.py:42-44 (security headers check)\n- _verify2.py:46-54 (logo upload via Pillow-generated PNG)\n- _verify2.py:56-63 (PDF export tests with %PDF header and DejaVu check)\n- _verify2.py:66-80 (backup create/list/download/ZIP contents/path traversal)\n- _verify2.py:82-87 (service creation with CSRF and mileage recompute)", "files/app/auth": "# Authentication & Users\n\n`app/auth.py` implements the `auth_bp` blueprint handling login, logout, self-registration, and admin-only user management. Combined with `app/security.py`, it enforces a two-role access model: **admin** and **radnik** (worker).\n\n## Role system\n\n| Role | Constant | Capabilities |\n|------|----------|-------------|\n| Administrator | `ROLE_ADMIN` (`\"admin\"`) | Sees all services/revenue, manages users, accesses setup + backup |\n| Worker | `ROLE_WORKER` (`\"radnik\"`) | Sees only their own services and revenue |\n\nThe **first registered user** automatically becomes admin (`User.query.count() == 0` check). All subsequent self-registrations are workers.\n\n## Endpoints\n\n| Route | Method | Function | Access |\n|-------|--------|----------|--------|\n| `/login` | GET/POST | `login()` | Public |\n| `/logout` | GET | `logout()` | Logged in |\n| `/register` | GET/POST | `register()` | Public |\n| `/users` | GET | `users()` | Admin |\n| `/users/new` | POST | `create_user()` | Admin |\n| `/users/<id>/role` | POST | `toggle_role()` | Admin |\n| `/users/<id>/active` | POST | `toggle_active()` | Admin |\n\n## Login throttling\n\nAn in-memory IP-based rate limiter (`_login_failures` defaultdict) tracks failed login timestamps per client IP. After `LOGIN_MAX_ATTEMPTS` failures within `LOGIN_LOCKOUT_MINUTES`, the IP is locked out for the remaining window. The throttle resets on application restart (acceptable for a single-process Waitress deployment).\n\n```mermaid\nflowchart TD\n    A[\"POST /login\"] --> B{\"Locked out?\"}\n    B -->|Yes| C[\"Flash error, render login\"]\n    B -->|No| D{\"Valid credentials?\"}\n    D -->|No| E[\"Record failure timestamp\"]\n    E --> C\n    D -->|Yes| F{\"User active?\"}\n    F -->|No| G[\"Flash deactivated, redirect\"]\n    F -->|Yes| H[\"Clear failures, login_user, redirect\"]\n```\n\n## Security helpers\n\n`app/security.py` provides the `admin_required` decorator \u2014 a simple `@wraps`-based check that aborts with 403 if the current user is not authenticated or not an admin. Used on setup, user management, and backup routes.\n\n## Registration validation\n\nSelf-registration enforces:\n- All fields required (full name, username, email).\n- Password minimum 6 characters, must match confirmation.\n- Unique username and email.\n\nAdmin user creation (`create_user`) follows the same rules but allows the admin to set the role directly.\n\n## Connections\n\n- Uses [Data Models](models.md) \u2014 `User`, `ROLE_ADMIN`, `ROLE_WORKER`\n- `admin_required` decorator used by [Dashboard & Setup](main.md), [Backup System](backup.md), [Reports & Analytics](reports.md)\n- Login throttle settings from [Configuration](../architecture/configuration.md) (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCKOUT_MINUTES`)\n- Part of the [Security Architecture](../architecture/security.md)\n\n# Citations\n- app/auth.py:1\n- app/auth.py:18\n- app/auth.py:27\n- app/auth.py:39\n- app/auth.py:70\n- app/auth.py:78\n- app/auth.py:97\n- app/auth.py:119\n- app/auth.py:136\n- app/auth.py:154\n- app/auth.py:165\n- app/security.py:1", "files/app/backup": "# Backup System\n\n`app/backup.py` implements the `backup_bp` blueprint and provides importable backup functions used by the CLI script (`backup.py`) and the [Background Scheduler](../architecture/scheduler.md).\n\n## Routes (Admin UI)\n\n| Route | Method | Function | Description |\n|-------|--------|----------|-------------|\n| `/backup` | GET | `index()` | List existing backups with sizes and dates |\n| `/backup/create` | POST | `create()` | Trigger a new backup |\n| `/backup/download/<name>` | GET | `download()` | Download a specific backup zip |\n\nAll routes require `@login_required` and `@admin_required`.\n\n## Backup Process\n\n`create_backup()` creates a timestamped zip file containing:\n\n1. **Consistent SQLite snapshot** \u2014 uses Python's `sqlite3.backup()` API to copy the database while the app is running, avoiding corruption from concurrent writes\n2. **All uploaded files** \u2014 car photos and company logo from `UPLOAD_FOLDER`, stored under `uploads/` in the archive\n\nThe backup is named `backup_YYYYMMDD_HHMMSS.zip` and saved to `BACKUP_DIR` (default: `instance/backups/`).\n\n```mermaid\nflowchart TD\n    Trigger[\"Admin UI / CLI / Scheduler\"]\n    Snapshot[\"sqlite3.backup() \u2192 temp DB file\"]\n    Zip[\"ZipFile (ZIP_DEFLATED)\"]\n    DB[\"carservice.db\"]\n    Uploads[\"uploads/ (photos, logo)\"]\n    Prune[\"prune_backups(keep=14)\"]\n    Result[\"backup_YYYYMMDD_HHMMSS.zip\"]\n\n    Trigger --> Snapshot\n    Snapshot --> DB\n    DB --> Zip\n    Uploads --> Zip\n    Zip --> Result\n    Result --> Prune\n```\n\n## Pruning\n\n`prune_backups(keep)` retains only the newest `keep` backups (default 14, configurable via `BACKUP_KEEP` env var) and deletes older ones. Called automatically after every backup creation.\n\n## Listing\n\n`list_backups()` scans `BACKUP_DIR` for `backup_*.zip` files and returns them sorted by modification time (newest first), with human-readable file sizes.\n\n## Download Security\n\nThe `download()` endpoint validates the filename against a strict regex (`backup_\\\\d{8}_\\\\d{6}\\\\.zip`) to prevent path traversal attacks.\n\n## CLI Script\n\nThe root `backup.py` script provides a simple command-line interface for cron/systemd timer usage:\n\n```python\npython backup.py  # creates a backup and prints the path\n```\n\n## Connections\n\n- Called by \u2192 [Background Scheduler](../architecture/scheduler.md) (nightly at 02:30)\n- Config settings \u2192 [Configuration](../architecture/configuration.md) (`BACKUP_DIR`, `BACKUP_KEEP`, `SQLALCHEMY_DATABASE_URI`)\n- Admin guard \u2192 [Security Architecture](../architecture/security.md)\n\n# Citations\n\n- app/backup.py:1\n- app/backup.py:22\n- app/backup.py:24\n- app/backup.py:43\n- app/backup.py:53\n- app/backup.py:78\n- app/backup.py:86\n- app/backup.py:96\n- app/backup.py:107\n- app/backup.py:117\n- app/backup.py:125\n- backup.py:1", "files/app/cars": "# Car Management\n\n`app/cars.py` defines the `cars_bp` blueprint handling vehicle registration, listing, detail view, and editing. Cars are the central entity around which services are organized \u2014 every service is attached to a car identified by its license plate.\n\n## Endpoints\n\n| Route | Method | Function | Description |\n|-------|--------|----------|-------------|\n| `/cars` | GET | `list_cars()` | Searchable list of all cars |\n| `/car/<id>` | GET | `detail(car_id)` | Car details + service history |\n| `/car/new` | GET/POST | `new()` | Register a new car |\n| `/car/<id>/edit` | GET/POST | `edit(car_id)` | Edit car details |\n\n## Plate-first integration\n\nThe `new()` route accepts optional query parameters:\n- `plate` \u2014 pre-fills the registration plate (passed from the [Service Records](services.md) plate-first flow).\n- `then=service` \u2014 after saving the new car, redirects to create a service for it instead of the car detail page.\n\nThis enables the seamless flow: enter plate \u2192 car doesn't exist \u2192 register it \u2192 immediately create a service.\n\n## Search\n\n`list_cars()` supports a `q` query parameter that filters cars by plate, owner name, brand, or model using case-insensitive `ILIKE` matching across all four fields with `db.or_()`.\n\n## Photo upload\n\nBoth `new()` and `edit()` accept an uploaded photo file. The photo is saved via `save_image()` from [Utilities](utils.md) into the `cars/` subdirectory of the upload folder. On edit, the old photo file is deleted from disk before saving the new one.\n\n## Plate normalization\n\n`_normalise_plate(plate)` strips spaces, converts to uppercase \u2014 ensuring plates like `\"bg 123 ab\"` and `\"BG123AB\"` are treated as the same vehicle. Duplicate plates are checked before insert.\n\n## Access control\n\n- All routes require login.\n- The detail page filters services: workers see only their own; admins see all.\n\n## Connections\n\n- Uses [Data Models](models.md) \u2014 `Car`, `Service`, `FUEL_TYPES`\n- Photo handling via `save_image()` from [Utilities](utils.md)\n- Integrated with [Service Records](services.md) plate-first flow\n- Service history links to [Printing & PDF](printing.md)\n\n# Citations\n- app/cars.py:1\n- app/cars.py:15\n- app/cars.py:17\n- app/cars.py:22\n- app/cars.py:38\n- app/cars.py:50\n- app/cars.py:87\n- app/cars.py:118", "files/app/main": "# Dashboard & Setup\n\n`app/main.py` defines the `main_bp` blueprint with two routes: the **dashboard** (landing page after login) and the **company setup** page (admin-only, used on first run and to update shop identity).\n\n## Dashboard (`/`)\n\nThe dashboard is the default route and requires login. It calculates and displays:\n\n| Stat | Scope |\n|------|-------|\n| Today's service count | Worker's own (or all if admin) |\n| Today's revenue | Sum of `total_full` |\n| Month's service count | Current calendar month |\n| Month's revenue | Sum of `total_full` |\n| Month's profit | Sum of `total_profit` |\n| Total cars registered | All cars (global) |\n\nIt also shows the **10 most recent services** ordered by date descending.\n\nWorkers see only their own services; admins see everything \u2014 this is enforced by filtering on `Service.worker_id == current_user.id` when `not current_user.is_admin`.\n\n## Company setup (`/setup`)\n\nAdmin-only (protected by `@admin_required`). Manages the single-row `Company` record:\n- **Name**, **address**, **contact** \u2014 text fields.\n- **Logo** \u2014 uploaded image, resized to max 600px via `save_image()`. Old logo files are removed on replacement.\n\nOn the very first visit, if no Company row exists, one is auto-created with `id=1`.\n\n## Key symbols\n\n| Symbol | Role |\n|--------|------|\n| `main_bp` | Flask Blueprint instance |\n| `dashboard()` | GET `/` \u2014 stats + recent services |\n| `setup()` | GET/POST `/setup` \u2014 company identity form |\n\n## Connections\n\n- Queries [Data Models](models.md) \u2014 `Company`, `Car`, `Service`\n- Uses `period_range()` and `save_image()` from [Utilities](utils.md)\n- Protected by `admin_required` from [Authentication & Users](auth.md)\n- Stats feed into the [Pricing & Profit Model](../architecture/pricing.md) calculations\n\n# Citations\n- app/main.py:1\n- app/main.py:15\n- app/main.py:19\n- app/main.py:27\n- app/main.py:39\n- app/main.py:47\n- app/main.py:50\n- app/main.py:67", "files/app/models": "# Data Models\n\n`app/models.py` defines the five SQLAlchemy models that form the application's data layer. All tables live in a single SQLite database (`instance/carservice.db`).\n\n## Model Relationships\n\n```mermaid\nclassDiagram\n    class User {\n        +int id\n        +str username\n        +str email\n        +str full_name\n        +str role\n        +bool active\n        +set_password()\n        +check_password()\n        +is_admin bool\n    }\n    class Company {\n        +int id\n        +str name\n        +str address\n        +str contact\n        +str logo_path\n    }\n    class Car {\n        +int id\n        +str plate\n        +str owner_name\n        +str brand\n        +int mileage\n        +description() str\n    }\n    class Service {\n        +int id\n        +date date\n        +float labor_price\n        +total_full() float\n        +total_profit() float\n    }\n    class Part {\n        +int id\n        +str name\n        +float price\n        +float price_with_discount\n        +float quantity\n        +line_full() float\n        +line_profit() float\n    }\n    User \"1\" --> \"*\" Service : worker\n    Car \"1\" --> \"*\" Service : has\n    Service \"1\" --> \"*\" Part : contains\n```\n\n## User\n\nExtends Flask-Login's `UserMixin`. Two roles defined by constants:\n- `ROLE_ADMIN = \"admin\"` \u2014 can see all services, manage users, access setup/backup.\n- `ROLE_WORKER = \"radnik\"` \u2014 sees only their own services.\n\nKey methods:\n- `set_password(password)` / `check_password(password)` \u2014 bcrypt-style hashing via Werkzeug.\n- `is_admin` property \u2014 checks `self.role == ROLE_ADMIN`.\n- `is_active` property \u2014 maps to the `active` column (Flask-Login interface).\n\n## Company\n\nA **single-row** table (always `id=1`) holding the shop's identity: name, address, contact info, and logo path. Populated on first run via the [Dashboard & Setup](main.md) page.\n\n## Car\n\nIndexed by `plate` (unique). Tracks vehicle details (brand, model, engine, fuel type, year), owner contact info, photo, and last-known mileage. Has a one-to-many relationship with `Service` (cascade delete-orphan).\n\nThe `description` property produces a human-readable summary like `\"BMW 320 2.0 dizel 2020\"`.\n\nFuel types are defined as a constant list: `benzin`, `dizel`, `ev`, `benzin/plin`, `hibrid`.\n\n## Service\n\nLinks a `Car` to a `worker` (User) for a specific date. Stores labor price/description and odometer reading. Parts are a cascade-delete-orphan relationship.\n\n### Derived price properties\n\n| Property | Formula | Meaning |\n|----------|---------|---------|\n| `parts_total_full` | \u03a3 part.line_full | What the customer pays for parts |\n| `parts_total_cost` | \u03a3 part.line_cost | Shop's actual parts cost |\n| `parts_profit` | full \u2212 cost | Margin on parts |\n| `total_full` | labor + parts_full | Total charged to customer |\n| `total_profit` | labor + parts_profit | Shop's total profit |\n\nThese properties drive the [Pricing & Profit Model](../architecture/pricing.md) used throughout [Reports](reports.md) and [Printing](printing.md).\n\n## Part\n\nEach part has two price columns:\n- `price` \u2014 retail / full price (what the customer sees).\n- `price_with_discount` \u2014 shop's purchase cost (with supplier discount).\n\nLine totals multiply by `quantity`:\n- `line_full = price \u00d7 quantity`\n- `line_cost = price_with_discount \u00d7 quantity`\n- `line_profit = line_full \u2212 line_cost`\n\n## Connections\n\n- Used by every blueprint: [Service Records](services.md), [Car Management](cars.md), [Authentication & Users](auth.md), [Reports & Analytics](reports.md), [Printing & PDF](printing.md)\n- Created/migrated by `init_db.py`\n- Pricing logic documented in [Pricing & Profit Model](../architecture/pricing.md)\n\n# Citations\n- app/models.py:1\n- app/models.py:9\n- app/models.py:15\n- app/models.py:30\n- app/models.py:48\n- app/models.py:59\n- app/models.py:89\n- app/models.py:104\n- app/models.py:112\n- app/models.py:131\n- app/models.py:141", "files/app/printing": "# Printing & PDF\n\n`app/printing.py` defines the `print_bp` blueprint for generating printable views of service records. Two output formats are supported: **HTML** (opens the browser's print dialog) and **PDF** (downloadable file via xhtml2pdf). Each format has two modes: **customer** copy and **owner** copy.\n\n## Print modes\n\n| Mode | Content shown | Use case |\n|------|--------------|----------|\n| **Customer** (`mode=customer`) | Parts at retail price only, no labor price, no profit | Receipt for the car owner |\n| **Owner** (`mode=owner`) | Full breakdown: labor, retail + cost prices, profit margins | Internal record for the shop owner |\n\n## Endpoints\n\n| Route | Function | Output |\n|-------|----------|--------|\n| `/print/service/<id>` | `service()` | HTML print of one service |\n| `/print/car/<id>` | `car()` | HTML print of all services for a car |\n| `/pdf/service/<id>` | `service_pdf()` | PDF download of one service |\n| `/pdf/car/<id>` | `car_pdf()` | PDF download of all car services |\n\nAll routes accept a `?mode=customer|owner` query parameter (defaults to `customer`).\n\n## Context builders\n\nTwo private functions build the template context:\n- `_service_context(service_id)` \u2014 single service with its car.\n- `_car_context(car_id)` \u2014 all services for a car, sorted by date ascending. Workers see only their own services.\n\nBoth enforce access control via `_can_access()` (same logic as [Service Records](services.md)).\n\n## PDF generation (`app/pdf.py`)\n\n`render_pdf(html)` converts an HTML string to PDF bytes using `xhtml2pdf.pisa`. Key details:\n\n- **DejaVu Sans font** is registered directly with ReportLab (not via CSS `@font-face`) to avoid a Windows temp-file lock bug. This ensures Serbian characters (\u010d, \u0107, \u0111, \u0161, \u017e) render correctly.\n- **Link callback** maps `/static/...` and `/media/...` URLs to absolute filesystem paths so images (logo, car photos) embed in the PDF.\n- A dedicated template `print/pdf.html` uses table-based layout because xhtml2pdf supports only a subset of CSS (no flexbox).\n\n```mermaid\nflowchart LR\n    Route[\"print_bp route\"] --> Context[\"Build context\"]\n    Context --> Template[\"Render print/pdf.html\"]\n    Template --> xhtml2pdf[\"pisa.CreatePDF()\"]\n    xhtml2pdf --> Font[\"DejaVu Sans (ReportLab)\"]\n    xhtml2pdf --> LinkCB[\"_link_callback()\"]\n    LinkCB --> Static[\"static/ files\"]\n    LinkCB --> Media[\"uploads/ images\"]\n    xhtml2pdf --> PDF[\"PDF bytes \u2192 Response\"]\n```\n\n## Connections\n\n- Uses [Data Models](models.md) \u2014 `Service`, `Car`\n- Access control same as [Service Records](services.md)\n- PDF font and layout separate from HTML print template\n- Linked from [Car Management](cars.md) detail page and [Service Records](services.md) detail page\n\n# Citations\n- app/printing.py:1\n- app/printing.py:13\n- app/printing.py:18\n- app/printing.py:29\n- app/printing.py:44\n- app/printing.py:50\n- app/printing.py:57\n- app/printing.py:72\n- app/printing.py:79\n- app/pdf.py:1\n- app/pdf.py:17\n- app/pdf.py:36\n- app/pdf.py:47", "files/app/reports": "# Reports & Analytics\n\n`app/reports.py` defines the `reports_bp` blueprint providing two main features: **journals** (periodic service summaries) and **analytics** (interactive profit/revenue charts).\n\n## Journals (`/reports`)\n\nJournals summarize services for a selected period (day / week / month) and scope (single worker or shop-wide \"all\"). The `compose_journal()` function is the core \u2014 it's a **pure function** (doesn't read `current_user`) so it can be called from both web requests and the background [Scheduler](../architecture/scheduler.md).\n\n### Journal flow\n\n```mermaid\nsequenceDiagram\n    participant User as Admin/Worker\n    participant Reports as reports_bp\n    participant DB as SQLite\n    participant Email as email_utils\n\n    User->>Reports: GET /reports?period=day&scope=me\n    Reports->>DB: Query services in date range\n    DB-->>Reports: Service list\n    Reports->>Reports: summarize() + per-worker breakdown\n    Reports-->>User: Rendered journal page\n\n    User->>Reports: POST /reports/send\n    Reports->>Reports: compose_journal()\n    Reports->>Email: send_email(recipients, subject, html)\n    Email-->>User: Flash success/failure\n```\n\n### Scope resolution\n\n`_resolve_scope(scope, worker_param)` enforces permissions:\n- Workers always see only their own data regardless of `scope` parameter.\n- Admins can choose: `\"me\"` (themselves), `\"all\"` (shop-wide), or `\"worker:<id>\"` (specific worker).\n\n### Summarize function\n\n`summarize(services)` returns a dict with: `count`, `parts_full`, `parts_cost`, `parts_profit`, `labor`, `revenue`, `profit`. Used for both overall totals and per-worker breakdowns.\n\n## Analytics (`/analytics`)\n\nA custom date-range analysis page with four Chart.js charts:\n1. **Revenue/profit over time** \u2014 bar + line combo chart (daily or monthly buckets).\n2. **Revenue structure** \u2014 doughnut: parts (retail) vs. labor.\n3. **Parts price comparison** \u2014 bar: retail vs. cost vs. margin.\n4. **Profit per worker** \u2014 horizontal bar (admin-only, shop-wide scope).\n\nThe `_build_charts()` function assembles all chart data server-side as JSON, embedded into the template as a `#chartData` element consumed by [analytics.js](../modules/app/static/js.md).\n\n### Time bucketing\n\nFor ranges over 62 days, data is bucketed monthly (labeled with abbreviated Serbian month names via `SR_MONTHS`). Shorter ranges use daily buckets.\n\n## E-mail delivery\n\nThe `send()` endpoint delivers a journal via e-mail:\n- **Worker journal** \u2192 sent to the worker's e-mail.\n- **Overall journal** \u2192 sent to all active admins.\n\nUses `send_email()` from `app/email_utils.py` (SMTP, configurable via [Configuration](../architecture/configuration.md)).\n\n## Key symbols\n\n| Symbol | Role |\n|--------|------|\n| `compose_journal(period, ref, worker, scope_label)` | Build journal dict (reusable from scheduler) |\n| `summarize(services)` | Aggregate financials for a service list |\n| `_build_charts(...)` | Assemble Chart.js data series |\n| `index()` | GET `/reports` \u2014 journal page |\n| `send()` | POST `/reports/send` \u2014 e-mail journal |\n| `analytics()` | GET `/analytics` \u2014 charts page |\n\n## Connections\n\n- Uses [Data Models](models.md) \u2014 `Service`, `User`\n- Called by [Scheduler](../architecture/scheduler.md) for automatic journal dispatch\n- Formatting via [Utilities](utils.md) (`period_range`, `sr_date`, `PERIOD_LABELS`, `SR_MONTHS`)\n- Charts rendered by [Frontend & Static Assets](../modules/app/static/js.md) (`analytics.js`)\n- SMTP via `email_utils.py`, configured in [Configuration](../architecture/configuration.md)\n\n# Citations\n- app/reports.py:1\n- app/reports.py:18\n- app/reports.py:80\n- app/reports.py:91\n- app/reports.py:102\n- app/reports.py:115\n- app/reports.py:144\n- app/reports.py:172\n- app/reports.py:206\n- app/email_utils.py:1", "files/app/services": "# Service Records\n\n`app/services.py` defines the `services_bp` blueprint \u2014 the core business logic of the application. It implements the **plate-first workflow** for creating service records, plus CRUD operations for managing them.\n\n## Plate-first workflow\n\nThe design philosophy: a mechanic starts by entering the car's license plate, not by navigating menus.\n\n```mermaid\nflowchart TD\n    A[\"Worker enters plate\"] --> B{\"Car exists?\"}\n    B -->|Yes| C[\"Redirect to new service form\"]\n    B -->|No| D[\"Redirect to car registration\"]\n    D --> E[\"Register car (plate pre-filled)\"]\n    E --> C\n    C --> F[\"Fill parts + labor + date\"]\n    F --> G[\"Save service + recompute mileage\"]\n```\n\n## Endpoints\n\n| Route | Method | Function | Description |\n|-------|--------|----------|-------------|\n| `/service/start` | GET/POST | `start()` | Enter plate \u2192 find or register car |\n| `/service/new?car_id=X` | GET/POST | `new()` | Create service for car X |\n| `/service/<id>` | GET | `detail(id)` | View service details |\n| `/service/<id>/edit` | GET/POST | `edit(id)` | Edit service |\n| `/service/<id>/delete` | POST | `delete(id)` | Delete service |\n| `/services` | GET | `list_services()` | List all services (filterable by plate) |\n\n## Access control\n\nThe helper `_can_access(service)` returns `True` if the current user is admin or is the worker who created the service. Used on detail, edit, and delete routes \u2014 non-matching workers get a 403.\n\n## Parts management\n\n`_rebuild_parts(service, form)` replaces the service's entire parts list on every save:\n1. Deletes all existing `Part` rows.\n2. Reads parallel form arrays: `part_name[]`, `part_qty[]`, `part_price[]`, `part_disc[]`.\n3. Creates new `Part` objects with name, quantity, retail price, and discounted (cost) price.\n\nThis approach keeps the form simple (add/remove rows dynamically via [Frontend JS](../modules/app/static/js.md)) and avoids partial-update complexity.\n\n## Mileage recompute\n\n`_recompute_car_mileage(car)` finds the most recent service (by date, then id) with a non-null mileage reading and sets `car.mileage` to that value. This ensures:\n- Editing an older service never overwrites a newer odometer reading.\n- Deleting the latest service falls back to the previous reading.\n\nCalled after every create, edit, and delete.\n\n## Form helpers\n\n- `_apply_service_form(service, form)` \u2014 parses date, mileage, labor price, and labor description from the POST data.\n- `_to_int(value)` / `_to_float(value)` \u2014 tolerant parsers that strip spaces and handle comma/dot decimal separators (Serbian locale).\n\n## Connections\n\n- Uses [Data Models](models.md) \u2014 `Car`, `Service`, `Part`\n- Plate normalization mirrors [Car Management](cars.md)\n- Dynamic form powered by [Frontend & Static Assets](../modules/app/static/js.md) (`service_form.js`)\n- Results feed into [Reports & Analytics](reports.md) and [Printing & PDF](printing.md)\n- Pricing logic documented in [Pricing & Profit Model](../architecture/pricing.md)\n\n# Citations\n- app/services.py:1\n- app/services.py:15\n- app/services.py:19\n- app/services.py:22\n- app/services.py:42\n- app/services.py:65\n- app/services.py:93\n- app/services.py:107\n- app/services.py:125\n- app/services.py:140\n- app/services.py:155\n- app/services.py:169\n- app/services.py:186", "files/app/utils": "# Utilities\n\n`app/utils.py` provides small helper functions used across the application for formatting, image handling, and date period calculations.\n\n## Functions\n\n### `format_currency(value) \u2192 str`\n\nFormats a number in Serbian style: `12.345,67 RSD`. Uses dot as thousands separator and comma as decimal separator. The currency code is taken from `app.config[\"CURRENCY\"]` (default `\"RSD\"`).\n\nRegistered as a Jinja2 filter `currency` in the [Application Factory](../../modules/app.md).\n\n### `sr_date(value) \u2192 str`\n\nFormats a date as `\"5. jul 2026.\"` using Serbian month names from `SR_MONTHS`. Registered as the Jinja2 filter `srdate`.\n\n### `allowed_image(filename) \u2192 bool`\n\nChecks if a filename has an allowed image extension: `png`, `jpg`, `jpeg`, `gif`, `webp`, `bmp`.\n\n### `save_image(file_storage, subdir, max_dim=1280) \u2192 str`\n\nSaves an uploaded image to `UPLOAD_FOLDER/<subdir>/` with a UUID-based filename:\n\n1. Validates the file extension via `allowed_image()`\n2. Creates the target directory if needed\n3. If Pillow is available, opens the image, converts RGBA/P to RGB for JPEG, and thumbnails to `max_dim` pixels\n4. Returns the path relative to `UPLOAD_FOLDER` (e.g., `\"cars/abc123.jpg\"`)\n\nUsed by [Car Management](cars.md) (car photos) and [Dashboard & Setup](main.md) (company logo, `max_dim=600`).\n\n### `period_range(period, ref=None) \u2192 (start_date, end_date)`\n\nReturns inclusive date boundaries for `\"day\"`, `\"week\"`, or `\"month\"`:\n\n| Period | Start | End |\n|--------|-------|-----|\n| `day` | ref | ref |\n| `week` | Monday of ref's week | Sunday of ref's week |\n| `month` | 1st of ref's month | Last day of ref's month |\n\nUsed by [Dashboard & Setup](main.md) (today/month stats) and [Reports & Analytics](reports.md) (journal date ranges).\n\n## Constants\n\n| Constant | Value | Usage |\n|----------|-------|-------|\n| `ALLOWED_IMAGE_EXT` | `{\"png\", \"jpg\", \"jpeg\", \"gif\", \"webp\", \"bmp\"}` | Image upload validation |\n| `FUEL_LABELS` | `{\"benzin\": \"Benzin\", ...}` | UI display labels for fuel types |\n| `ROLE_LABELS` | `{\"admin\": \"Administrator\", \"radnik\": \"Radnik\"}` | UI display labels for roles |\n| `PERIOD_LABELS` | `{\"day\": \"Dnevni\", \"week\": \"Nedeljni\", \"month\": \"Mese\u010dni\"}` | Journal period labels |\n| `SR_MONTHS` | 13-element list of Serbian month names | Date formatting |\n\n## Connections\n\n- Jinja2 filters registered in \u2192 [Application Factory](../../modules/app.md)\n- Used by \u2192 [Dashboard & Setup](main.md), [Car Management](cars.md), [Reports & Analytics](reports.md), [Background Scheduler](../architecture/scheduler.md)\n- Image handling powered by Pillow (listed in `requirements.txt`)\n\n# Citations\n\n- app/utils.py:1\n- app/utils.py:16\n- app/utils.py:27\n- app/utils.py:30\n- app/utils.py:39\n- app/utils.py:50\n- app/utils.py:57\n- app/utils.py:62\n- app/utils.py:93", "modules/app/static/js": "# Frontend Assets\n\nThe `app/static/js/` directory contains three custom JavaScript modules plus two vendor libraries (Chart.js and Bootstrap). All scripts are vanilla ES5 IIFEs (no build step required).\n\n## Custom Modules\n\n### `analytics.js` (73 LOC)\nRenders four Chart.js charts on the `/analytics` page. Reads chart data from a `<script id=\"chartData\">` JSON block embedded by the server.\n\n**Charts rendered:**\n- `#chTime` \u2014 combo bar + line chart: revenue (bars) and profit (line) over time\n- `#chStruct` \u2014 doughnut chart: revenue structure (parts vs labor)\n- `#chParts` \u2014 bar chart: parts full price vs discounted vs margin\n- `#chWorker` \u2014 horizontal bar chart: profit per worker (admin-only)\n\nAll monetary values are formatted with `Number.toLocaleString(\"sr-RS\")` plus the configured currency code.\n\n### `service_form.js` (61 LOC)\nManages the dynamic parts table on the service create/edit form:\n\n- **`recalc()`** \u2014 iterates all `.part-row` elements, computes `qty \u00d7 price` for each, updates line totals and the summary (parts total, labor, grand total)\n- **`addRow()`** \u2014 clones the `<template id=\"partRowTemplate\">` and appends to `#partsBody`\n- **Event delegation** \u2014 listens for `click` (add/remove part) and `input` (qty/price/disc/labor changes) events at the document level\n- Starts with one empty row if none exist on DOM load\n\n### `theme.js` (22 LOC)\nImplements the dark/light theme toggle:\n- Reads/writes the `data-bs-theme` attribute on `<html>` (Bootstrap 5 dark mode)\n- Persists the choice in `localStorage`\n- Updates the toggle button icon (\u2600\ufe0f / \ud83c\udf19)\n\n## Vendor Libraries\n\n| File | Purpose |\n|------|---------|\n| `chart.umd.min.js` | Chart.js 4.x UMD bundle |\n| `bootstrap.bundle.min.js` | Bootstrap 5 JS + Popper |\n\n## Key Connections\n\n- [Reports & Analytics](../../files/app/reports.md) \u2014 `_build_charts()` prepares the JSON data consumed by `analytics.js`\n- [Service Records](../../files/app/services.md) \u2014 service form uses `service_form.js`\n- [Pricing & Profit Model](../../architecture/pricing.md) \u2014 `service_form.js` mirrors the pricing logic client-side\n- [Overview](../../overview.md)\n\n# Citations\n\n- app/static/js/analytics.js:1-3 (IIFE, reads chartData JSON element)\n- app/static/js/analytics.js:10-11 (Serbian money formatting with sr-RS locale)\n- app/static/js/analytics.js:21-38 (chTime \u2014 combo bar+line chart)\n- app/static/js/analytics.js:40-47 (chStruct \u2014 doughnut chart)\n- app/static/js/analytics.js:49-57 (chParts \u2014 bar chart)\n- app/static/js/analytics.js:59-68 (chWorker \u2014 horizontal bar chart)\n- app/static/js/service_form.js:1-2 (IIFE start)\n- app/static/js/service_form.js:10-26 (recalc \u2014 live price computation)\n- app/static/js/service_form.js:28-32 (addRow \u2014 template cloning)\n- app/static/js/service_form.js:34-46 (event delegation for click and input)\n- app/static/js/theme.js:1-22 (dark/light toggle with localStorage persistence)", "modules/app": "# Application Factory\n\nThe `app/__init__.py` module implements the **Flask application factory pattern** via `create_app()`. This single function is the bootstrap point for the entire application \u2014 it configures extensions, registers all seven blueprints, sets up Jinja template helpers, security middleware, error handlers, and optionally starts the background scheduler.\n\n## How `create_app()` works\n\n1. **Create the Flask instance** and load the `Config` class.\n2. **Ensure directories** exist: `INSTANCE_DIR`, `BACKUP_DIR`, and upload sub-folders (`cars/`, `logo/`).\n3. **Reverse-proxy support**: if `TRUST_PROXY` is set, applies Werkzeug's `ProxyFix` middleware for correct `X-Forwarded-*` header handling (needed when behind nginx on the Pi).\n4. **Initialise extensions**: `db` (SQLAlchemy), `login_manager` (Flask-Login), `csrf` (Flask-WTF CSRF protection) \u2014 all defined in `extensions.py`.\n5. **Register blueprints**: `auth_bp`, `main_bp`, `cars_bp`, `services_bp`, `reports_bp`, `print_bp`, `backup_bp`.\n6. **Media route**: `/media/<path:filename>` serves uploaded files (login-required).\n7. **Jinja helpers**: `currency` and `srdate` filters, plus context-injected globals (`company`, `FUEL_LABELS`, `ROLE_LABELS`, `PERIOD_LABELS`, `currency_code`).\n8. **Before-request hook**: rejects (logs out) deactivated users mid-session.\n9. **After-request hook**: sets security headers (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).\n10. **Error handlers**: 403, 404, 413, 500, and CSRFError (400).\n11. **Scheduler**: if `ENABLE_SCHEDULER` is true, starts APScheduler via `start_scheduler(app)`.\n\n## SQLite pragmas\n\nA SQLAlchemy engine-level `connect` listener (applied globally) sets three pragmas on every new database connection:\n\n- `PRAGMA journal_mode=WAL` \u2014 Write-Ahead Logging for better concurrent reads.\n- `PRAGMA foreign_keys=ON` \u2014 enforces FK constraints.\n- `PRAGMA busy_timeout=30000` \u2014 30-second wait instead of immediate \"database is locked\" errors.\n\nThis is critical for reliable operation on the Pi under light concurrent use.\n\n## Key symbols\n\n| Symbol | Role |\n|--------|------|\n| `create_app(config_class)` | Factory function; returns configured Flask app |\n| `_set_sqlite_pragma()` | Engine connect listener for SQLite tuning |\n| `_reject_deactivated()` | Before-request hook to log out disabled users |\n| `_security_headers()` | After-request hook adding CSP and other headers |\n\n## Connections\n\n- Loads settings from [Configuration](../architecture/configuration.md)\n- Uses extensions from `extensions.py` (`db`, `login_manager`, `csrf`)\n- Registers blueprints documented in: [Authentication & Users](../files/app/auth.md), [Dashboard & Setup](../files/app/main.md), [Car Management](../files/app/cars.md), [Service Records](../files/app/services.md), [Reports & Analytics](../files/app/reports.md), [Printing & PDF](../files/app/printing.md), [Backup System](../files/app/backup.md)\n- Optionally starts the [Scheduler](../architecture/scheduler.md)\n- Injects helpers from [Utilities](../files/app/utils.md) into Jinja\n\n```mermaid\nflowchart TD\n    create_app[\"create_app()\"] --> Config[\"Config class\"]\n    create_app --> Extensions[\"db / login_manager / csrf\"]\n    create_app --> BP[\"7 Blueprints\"]\n    create_app --> Jinja[\"Jinja filters + context\"]\n    create_app --> Security[\"Security headers + hooks\"]\n    create_app --> Errors[\"Error handlers\"]\n    create_app --> Sched[\"start_scheduler (optional)\"]\n    BP --> auth_bp\n    BP --> main_bp\n    BP --> cars_bp\n    BP --> services_bp\n    BP --> reports_bp\n    BP --> print_bp\n    BP --> backup_bp\n```\n\n# Citations\n- app/__init__.py:1\n- app/__init__.py:17\n- app/__init__.py:30\n- app/__init__.py:39\n- app/__init__.py:61\n- app/__init__.py:76\n- app/__init__.py:86\n- app/__init__.py:93\n- app/__init__.py:100\n- app/__init__.py:130\n- app/extensions.py:1", "overview": "# Overview\n\n**Auto Servis** is a lightweight web application for managing an auto mechanic shop. Built with Python (Flask) and SQLite, it is designed to run on hardware as modest as a **Raspberry Pi Zero 2W** \u2014 no Docker required \u2014 as well as on Windows for development and testing.\n\nThe interface language is **Serbian (Latin script)**.\n\n## What it does\n\n- **Two account types**: administrator and worker (radnik). The first registered user automatically becomes admin.\n- **Vehicle registry** by license plate, tracking owner, mileage, brand/model/engine/fuel/year, and photo.\n- **Service records** with a parts table (retail vs. cost price), labor description + price, date, and mileage update.\n- **Plate-first workflow**: enter a plate \u2192 if the car exists, create a service; if not, register it first, then proceed.\n- **Printing**: customer copy (no labor, retail prices only) and owner copy (full breakdown with profit). Available as browser print or PDF download.\n- **Journals**: daily / weekly / monthly reports by worker or shop-wide, with e-mail delivery via SMTP.\n- **Analytics**: profit charts, parts price comparison (retail vs. cost vs. margin), revenue structure \u2014 powered by Chart.js.\n- **Backups**: consistent SQLite online-backup zipped with uploaded media, with admin UI and automatic nightly scheduling.\n\n## Tech stack\n\n| Layer | Technology |\n|-------|-----------|\n| Backend | Python 3, Flask 3.0, Flask-SQLAlchemy, Flask-Login, Flask-WTF |\n| Database | SQLite (WAL mode, busy timeout for Pi concurrency) |\n| WSGI server | Waitress (pure-Python, cross-platform) |\n| PDF | xhtml2pdf + DejaVu Sans font for Serbian glyphs |\n| Images | Pillow (resize on upload) |\n| Scheduler | APScheduler (journal e-mails + nightly backup) |\n| Frontend | Bootstrap 5, Chart.js, custom JS (dark theme, dynamic parts form) |\n| Config | python-dotenv (.env file) |\n\n## Architecture\n\nThe application follows the **Flask app-factory pattern**. `create_app()` in `app/__init__.py` initialises extensions, registers seven blueprints, sets up Jinja filters, security headers, error handlers, and optionally starts the background scheduler.\n\n```mermaid\nflowchart TD\n    Client[\"Browser\"] -->|HTTP| Waitress[\"serve.py (Waitress)\"]\n    Waitress --> AppFactory[\"create_app()\"]\n    AppFactory --> AuthBP[\"auth_bp\"]\n    AppFactory --> MainBP[\"main_bp\"]\n    AppFactory --> CarsBP[\"cars_bp\"]\n    AppFactory --> ServicesBP[\"services_bp\"]\n    AppFactory --> ReportsBP[\"reports_bp\"]\n    AppFactory --> PrintBP[\"print_bp\"]\n    AppFactory --> BackupBP[\"backup_bp\"]\n    AuthBP --> DB[\"SQLite (carservice.db)\"]\n    MainBP --> DB\n    CarsBP --> DB\n    ServicesBP --> DB\n    ReportsBP --> DB\n    ReportsBP --> SMTP[\"SMTP (e-mail)\"]\n    PrintBP --> PDF[\"xhtml2pdf\"]\n    BackupBP --> DB\n```\n\n## Key pages in this wiki\n\n- [Application Factory](modules/app.md) \u2014 how the app is wired together\n- [Data Models](files/app/models.md) \u2014 User, Company, Car, Service, Part\n- [Authentication & Users](files/app/auth.md) \u2014 login, roles, throttling\n- [Dashboard & Setup](files/app/main.md) \u2014 home page and company config\n- [Car Management](files/app/cars.md) \u2014 vehicle CRUD\n- [Service Records](files/app/services.md) \u2014 the plate-first workflow\n- [Reports & Analytics](files/app/reports.md) \u2014 journals and charts\n- [Printing & PDF](files/app/printing.md) \u2014 print views and PDF export\n- [Backup System](files/app/backup.md) \u2014 database backup and restore\n- [Utilities](files/app/utils.md) \u2014 formatting, images, periods\n- [Scheduler](architecture/scheduler.md) \u2014 automatic journal e-mails and backups\n- [Frontend & Static Assets](modules/app/static/js.md) \u2014 JS and UI\n- [Security Architecture](architecture/security.md) \u2014 CSRF, headers, throttling\n- [Pricing & Profit Model](architecture/pricing.md) \u2014 revenue vs. cost vs. profit\n- [Configuration](architecture/configuration.md) \u2014 .env settings\n- [Deployment](architecture/deployment.md) \u2014 Pi, Windows, systemd\n\n# Citations\n- README.md:1\n- app/__init__.py:1\n- app/__init__.py:30\n- app/__init__.py:61\n- app/__init__.py:130\n- serve.py:1\n- requirements.txt:1\n- app/config.py:1"}, "types": ["Architecture", "Data Flow", "Entrypoint", "File", "Module", "Repo"], "palette": {"Repo": "#0ea5e9", "Module": "#3b82f6", "File": "#22c55e", "Architecture": "#a855f7", "API Endpoint": "#ec4899", "Data Flow": "#f97316", "Entrypoint": "#eab308", "Reference": "#10b981", "BigQuery Dataset": "#8b5cf6", "BigQuery Table": "#3b82f6"}};
+</script>
+<script>
+(function () {
+  const bundle = window.BUNDLE;
+  const bundleName = window.BUNDLE_NAME;
+  document.title = `${bundleName} — VIO Wiki`;
+  document.getElementById("bundle-name").textContent = bundleName;
+
+  // Mermaid: manual render mode so we control which subtree runs.
+  let mermaidReady = false;
+  if (window.mermaid) {
+    try {
+      mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "neutral" });
+      mermaidReady = true;
+    } catch (_e) { mermaidReady = false; }
+  }
+  let _mermaidSeq = 0;
+
+  // Populate type filter
+  const typeSelect = document.getElementById("filter-type");
+  for (const t of bundle.types) {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t;
+    typeSelect.appendChild(opt);
+  }
+
+  // Build reverse-link index for backlinks
+  const backlinks = {};
+  for (const edge of bundle.edges) {
+    const { source, target } = edge.data;
+    (backlinks[target] ||= []).push(source);
+  }
+
+  // Look up node label/type by id
+  const nodeIndex = {};
+  for (const n of bundle.nodes) nodeIndex[n.data.id] = n.data;
+
+  // ── Build the link tree (left sidebar) ──
+  // Group concepts by their id prefix (the directory), e.g.
+  // "architecture/auth" -> group "architecture". Top-level ids form roots.
+  const treeItemEls = {};   // conceptId -> <li class=tree-item>
+  (function buildTree() {
+    const groups = {};       // prefix -> [ids]
+    const roots = [];        // ids with no "/"
+    for (const n of bundle.nodes) {
+      const id = n.data.id;
+      const slash = id.indexOf("/");
+      if (slash === -1) {
+        roots.push(id);
+      } else {
+        const prefix = id.slice(0, id.lastIndexOf("/"));
+        (groups[prefix] ||= []).push(id);
+      }
+    }
+    const byLabel = (a, b) =>
+      (nodeIndex[a]?.label || a).localeCompare(nodeIndex[b]?.label || b);
+
+    const list = document.getElementById("tree-list");
+    const makeItem = (id) => {
+      const li = document.createElement("li");
+      li.className = "tree-item";
+      li.title = id;
+      const dot = document.createElement("span");
+      dot.className = "tree-dot";
+      dot.style.background = nodeIndex[id]?.color || "#94a3b8";
+      const label = document.createElement("span");
+      label.textContent = nodeIndex[id]?.label || id;
+      li.appendChild(dot);
+      li.appendChild(label);
+      li.addEventListener("click", () => showDetail(id));
+      treeItemEls[id] = li;
+      return li;
+    };
+
+    // Roots first (Repo/overview usually), then each group as a header + children.
+    for (const id of roots.sort(byLabel)) list.appendChild(makeItem(id));
+    for (const prefix of Object.keys(groups).sort()) {
+      const header = document.createElement("li");
+      header.className = "tree-head";
+      header.textContent = prefix;
+      list.appendChild(header);
+      const sub = document.createElement("ul");
+      for (const id of groups[prefix].sort(byLabel)) sub.appendChild(makeItem(id));
+      list.appendChild(sub);
+    }
+  })();
+
+  function setActiveTreeItem(conceptId) {
+    for (const el of Object.values(treeItemEls)) el.classList.remove("active");
+    const el = treeItemEls[conceptId];
+    if (el) {
+      el.classList.add("active");
+      el.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  const cy = cytoscape({
+    container: document.getElementById("graph"),
+    elements: [...bundle.nodes, ...bundle.edges],
+    style: [
+      {
+        selector: "node",
+        style: {
+          "background-color": "data(color)",
+          "label": "data(label)",
+          "color": "#0f172a",
+          "font-size": 11,
+          "text-valign": "bottom",
+          "text-margin-y": 4,
+          "text-wrap": "wrap",
+          "text-max-width": 120,
+          "width": "data(size)",
+          "height": "data(size)",
+          "border-width": 1,
+          "border-color": "#0f172a",
+        },
+      },
+      {
+        selector: "node:selected",
+        style: {
+          "border-width": 3,
+          "border-color": "#f59e0b",
+        },
+      },
+      {
+        selector: "edge",
+        style: {
+          "width": 1.5,
+          "line-color": "#cbd5e1",
+          "target-arrow-color": "#cbd5e1",
+          "target-arrow-shape": "triangle",
+          "curve-style": "bezier",
+          "arrow-scale": 0.9,
+        },
+      },
+      {
+        selector: "edge:selected",
+        style: {
+          "line-color": "#f59e0b",
+          "target-arrow-color": "#f59e0b",
+          "width": 2.5,
+        },
+      },
+      {
+        selector: ".dim",
+        style: { "opacity": 0.15 },
+      },
+    ],
+    layout: { name: "cose", animate: false, padding: 30 },
+    wheelSensitivity: 0.2,
+  });
+
+  cy.on("tap", "node", (evt) => showDetail(evt.target.id()));
+  cy.on("tap", (evt) => {
+    if (evt.target === cy) clearSelection();
+  });
+
+  document.getElementById("layout").addEventListener("change", (e) => {
+    cy.layout({ name: e.target.value, animate: false, padding: 30 }).run();
+  });
+
+  document.getElementById("fit-graph").addEventListener("click", () => {
+    cy.resize();
+    cy.fit(null, 30);
+  });
+
+  document.getElementById("reset-graph").addEventListener("click", () => {
+    cy.layout({ name: document.getElementById("layout").value, animate: false, padding: 30 }).run();
+    cy.resize();
+    cy.fit(null, 30);
+    clearSelection();
+  });
+
+  document.getElementById("search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) {
+      cy.elements().removeClass("dim");
+      return;
+    }
+    cy.nodes().forEach((n) => {
+      const d = n.data();
+      const hay =
+        (d.label || "").toLowerCase() + " " +
+        d.id.toLowerCase() + " " +
+        (d.tags || []).join(" ").toLowerCase();
+      n.toggleClass("dim", !hay.includes(q));
+    });
+    cy.edges().forEach((edge) => {
+      const src = edge.source();
+      const tgt = edge.target();
+      edge.toggleClass("dim", src.hasClass("dim") || tgt.hasClass("dim"));
+    });
+  });
+
+  document.getElementById("filter-type").addEventListener("change", (e) => {
+    const t = e.target.value;
+    if (!t) {
+      cy.elements().removeClass("dim");
+      return;
+    }
+    cy.nodes().forEach((n) => {
+      n.toggleClass("dim", n.data("type") !== t);
+    });
+    cy.edges().forEach((edge) => {
+      edge.toggleClass("dim", edge.source().hasClass("dim") || edge.target().hasClass("dim"));
+    });
+  });
+
+  function clearSelection() {
+    cy.elements().unselect();
+    document.getElementById("detail-empty").hidden = false;
+    document.getElementById("detail-content").hidden = true;
+  }
+
+  function showDetail(conceptId) {
+    const data = nodeIndex[conceptId];
+    if (!data) return;
+    cy.elements().unselect();
+    const node = cy.getElementById(conceptId);
+    if (node) node.select();
+
+    setActiveTreeItem(conceptId);
+
+    document.getElementById("detail-empty").hidden = true;
+    const content = document.getElementById("detail-content");
+    content.hidden = false;
+
+    const chip = document.getElementById("detail-type");
+    chip.textContent = data.type;
+    chip.style.background = data.color;
+
+    document.getElementById("detail-title").textContent = data.label;
+    document.getElementById("detail-id").textContent = conceptId;
+    document.getElementById("detail-description").textContent = data.description || "—";
+
+    const resourceEl = document.getElementById("detail-resource");
+    resourceEl.innerHTML = "";
+    if (data.resource) {
+      const a = document.createElement("a");
+      a.href = data.resource;
+      a.textContent = data.resource;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.className = "external";
+      resourceEl.appendChild(a);
+    } else {
+      resourceEl.textContent = "—";
+    }
+
+    const tagsEl = document.getElementById("detail-tags");
+    tagsEl.innerHTML = "";
+    if (data.tags && data.tags.length) {
+      for (const t of data.tags) {
+        const span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = t;
+        tagsEl.appendChild(span);
+      }
+    } else {
+      tagsEl.textContent = "—";
+    }
+
+    const body = bundle.bodies[conceptId] || "";
+    const html = marked.parse(body, { breaks: false, gfm: true });
+    const bodyEl = document.getElementById("detail-body");
+    bodyEl.innerHTML = html;
+    rewriteInternalLinks(bodyEl, conceptId);
+    renderMermaidIn(bodyEl);
+    highlightCodeIn(bodyEl);
+
+    const bl = backlinks[conceptId] || [];
+    const blSection = document.getElementById("detail-backlinks");
+    const blList = document.getElementById("backlinks-list");
+    blList.innerHTML = "";
+    if (bl.length) {
+      blSection.hidden = false;
+      for (const src of bl) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.textContent = nodeIndex[src]?.label || src;
+        a.dataset.target = src;
+        a.addEventListener("click", () => showDetail(src));
+        li.appendChild(a);
+        const muted = document.createElement("span");
+        muted.className = "muted";
+        muted.textContent = ` (${src})`;
+        li.appendChild(muted);
+        blList.appendChild(li);
+      }
+    } else {
+      blSection.hidden = true;
+    }
+
+    if (node && !document.body.classList.contains("graph-hidden")) {
+      cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 1.0) }, { duration: 200 });
+    }
+  }
+
+  // Normalise a markdown link target to a concept-id, tolerant of every
+  // cross-link style: bare id (`architecture/auth`), relative `.md`
+  // (`auth.md`, `../files/srv.md`), absolute `/architecture/auth.md`.
+  // Returns the first candidate that maps to a real node, else null.
+  function resolveConceptId(href, fromId) {
+    if (!href) return null;
+    let raw = href.split("#")[0].trim();
+    if (!raw || raw.includes("://") || raw.startsWith("mailto:")) return null;
+
+    const selfDir = fromId && fromId.includes("/")
+      ? fromId.slice(0, fromId.lastIndexOf("/"))
+      : "";
+    const strip = (s) => s.replace(/\.md$/, "").replace(/^\/+/, "").replace(/\/+$/, "");
+    const candidates = [];
+
+    if (raw.startsWith("/")) {
+      candidates.push(strip(raw));
+    } else if (raw.endsWith(".md") || raw.includes("/") || raw.startsWith(".")) {
+      // resolve relative path against this doc's directory
+      const base = selfDir ? selfDir.split("/") : [];
+      for (const part of strip(raw).split("/")) {
+        if (part === "..") base.pop();
+        else if (part !== "." && part !== "") base.push(part);
+      }
+      candidates.push(base.join("/"));
+      candidates.push(strip(raw));               // bundle-root-relative literal
+      const lit = strip(raw);
+      if (selfDir && !lit.includes("/")) candidates.push(`${selfDir}/${lit}`);
+    } else {
+      candidates.push(raw);                      // bare token
+      if (selfDir) candidates.push(`${selfDir}/${raw}`);
+    }
+
+    for (const cid of candidates) {
+      if (cid && nodeIndex[cid]) return cid;
+    }
+    return null;
+  }
+
+  // Syntax-highlight non-mermaid fenced code blocks with Prism (autoloader
+  // pulls the grammar on demand). Mirrors VIO's in-chat code rendering.
+  function highlightCodeIn(root) {
+    if (typeof Prism === "undefined") return;
+    const blocks = root.querySelectorAll("pre > code[class*='language-']");
+    blocks.forEach((code) => {
+      if (code.classList.contains("language-mermaid")) return;
+      const pre = code.parentElement;
+      if (pre && pre.tagName === "PRE") {
+        pre.classList.add("code-block");
+        if (!pre.hasAttribute("tabindex")) pre.setAttribute("tabindex", "0");
+      }
+      try { Prism.highlightElement(code); } catch (e) { /* leave plain */ }
+    });
+  }
+
+  // Render ```mermaid fenced blocks (marked emits <pre><code class="language-mermaid">)
+  // into SVG. Falls back to the raw code block on any parse error — never blank.
+  function renderMermaidIn(root) {
+    if (!mermaidReady) return;
+    const blocks = root.querySelectorAll("pre > code.language-mermaid, code.language-mermaid");
+    blocks.forEach((code) => {
+      const pre = code.closest("pre") || code;
+      const src = code.textContent || "";
+      const id = "mmd-" + (_mermaidSeq++);
+      mermaid.render(id, src).then(({ svg }) => {
+        const fig = document.createElement("figure");
+        fig.className = "mermaid-figure";
+        fig.innerHTML = svg;
+        // Mermaid stamps a fixed width/height + inline `max-width:<px>` on the
+        // SVG. On a narrow pane that squeezes the diagram and clips edge text
+        // (the lightbox looked fine only because openLightbox strips these).
+        // Drop them so the figure CSS (max-width:100% + horizontal scroll)
+        // governs sizing and nothing gets cropped.
+        var inlineSvg = fig.querySelector("svg");
+        if (inlineSvg) {
+          inlineSvg.removeAttribute("width");
+          inlineSvg.removeAttribute("height");
+          inlineSvg.style.maxWidth = "100%";
+          inlineSvg.style.width = "100%";
+          inlineSvg.style.height = "auto";
+        }
+        fig.title = "Click to zoom";
+        fig.addEventListener("click", () => openLightbox(fig.innerHTML));
+        pre.replaceWith(fig);
+      }).catch(() => {
+        pre.classList.add("mermaid-error");
+      });
+    });
+  }
+
+  function openLightbox(svgHtml) {
+    let lb = document.getElementById("mermaid-lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "mermaid-lightbox";
+      lb.addEventListener("click", () => { lb.style.display = "none"; lb.innerHTML = ""; });
+      document.body.appendChild(lb);
+    }
+    lb.innerHTML = '<div class="mermaid-lightbox-inner">' + svgHtml + "</div>";
+    var svg = lb.querySelector("svg");
+    if (svg) {
+      // Mermaid stamps an inline max-width (its natural px width) on the SVG,
+      // which would cap the zoomed view to a tiny size. Clear it so the
+      // lightbox CSS can scale the diagram up to fill the viewport.
+      svg.style.maxWidth = "none";
+      svg.style.width = "100%";
+      svg.style.height = "auto";
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+    }
+    lb.style.display = "flex";
+  }
+
+  function rewriteInternalLinks(root, fromId) {
+    root.querySelectorAll("a[href]").forEach((a) => {
+      const href = a.getAttribute("href");
+      const target = resolveConceptId(href, fromId);
+      if (target) {
+        a.className = "internal";
+        a.setAttribute("href", "javascript:void(0)");
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          showDetail(target);
+        });
+        return;
+      }
+      a.className = "external";
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener");
+    });
+  }
+
+  // ── Toggle graph visibility — collapse leaves a reopen button ──
+  const toggleBtn = document.getElementById("toggle-graph");
+  const graphReopen = document.getElementById("graph-reopen");
+  function setGraphHidden(hidden) {
+    document.body.classList.toggle("graph-hidden", hidden);
+    if (graphReopen) graphReopen.hidden = !hidden;
+    if (!hidden) {
+      // Graph re-shown: cytoscape needs a resize + refit after display change.
+      cy.resize();
+      cy.fit(null, 30);
+    }
+  }
+  toggleBtn.addEventListener("click", () => setGraphHidden(true));
+  if (graphReopen) graphReopen.addEventListener("click", () => setGraphHidden(false));
+
+  // ── Toggle page-tree visibility — collapse leaves a reopen button ──
+  const toggleTreeBtn = document.getElementById("toggle-tree");
+  const treeReopen = document.getElementById("tree-reopen");
+  function setTreeHidden(hidden) {
+    document.body.classList.toggle("tree-hidden", hidden);
+    if (treeReopen) treeReopen.hidden = !hidden;
+  }
+  toggleTreeBtn.addEventListener("click", () => setTreeHidden(true));
+  if (treeReopen) treeReopen.addEventListener("click", () => setTreeHidden(false));
+
+  // ── Auto-fit the graph whenever its pane changes size (drag-resize,
+  //    window resize, show/hide of sibling panes). Debounced via rAF. ──
+  (function autoFitGraph() {
+    if (typeof ResizeObserver === "undefined") return;
+    const pane = document.getElementById("graph-pane");
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      if (document.body.classList.contains("graph-hidden")) return;
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        cy.resize();
+        cy.fit(null, 30);
+      });
+    });
+    ro.observe(pane);
+  })();
+
+  // True when the panes are stacked vertically (narrow embed). In that mode the
+  // two gutters act as horizontal row-resizers (drag on the Y axis).
+  const isStacked = () => window.matchMedia("(max-width: 520px)").matches;
+
+  // ── Drag-resize the page tree against the content (col when wide, row when stacked) ──
+  (function initTreeResize() {
+    const gutter = document.getElementById("tree-gutter");
+    const tree = document.getElementById("tree");
+    let dragging = false;
+    gutter.addEventListener("mousedown", (e) => {
+      dragging = true;
+      gutter.classList.add("dragging");
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = isStacked() ? "row-resize" : "col-resize";
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const rect = tree.getBoundingClientRect();
+      if (isStacked()) {
+        let h = e.clientY - rect.top;
+        h = Math.max(90, Math.min(h, window.innerHeight - 200));
+        tree.style.flex = `0 0 ${h}px`;
+        tree.style.height = `${h}px`;
+      } else {
+        let w = e.clientX - rect.left;
+        w = Math.max(150, Math.min(w, 480));
+        tree.style.flex = `0 0 ${w}px`;
+        tree.style.width = `${w}px`;
+      }
+    });
+    window.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      gutter.classList.remove("dragging");
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    });
+  })();
+
+  // ── Drag-resize between the content (middle) and graph pane (right) ──
+  (function initResize() {
+    const gutter = document.getElementById("gutter");
+    const graphPane = document.getElementById("graph-pane");
+    const mainEl = document.querySelector("main");
+    let dragging = false;
+
+    gutter.addEventListener("mousedown", (e) => {
+      dragging = true;
+      gutter.classList.add("dragging");
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = isStacked() ? "row-resize" : "col-resize";
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      if (isStacked()) {
+        // graph pane occupies from the gutter down to the bottom edge
+        const rect = mainEl.getBoundingClientRect();
+        let graphH = rect.bottom - e.clientY;
+        graphH = Math.max(120, Math.min(graphH, rect.height - 200));
+        graphPane.style.flex = `0 0 ${graphH}px`;
+        graphPane.style.height = `${graphH}px`;
+      } else {
+        const rect = mainEl.getBoundingClientRect();
+        const min = 240;
+        // graph pane occupies from the gutter to the right edge
+        let graphW = rect.right - e.clientX;
+        const maxGraph = rect.width - min;
+        graphW = Math.max(min, Math.min(graphW, maxGraph));
+        graphPane.style.flex = `0 0 ${graphW}px`;
+      }
+    });
+    window.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      gutter.classList.remove("dragging");
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      cy.resize();
+    });
+  })();
+
+  // Auto-show the first node — prefer Repo > Architecture > Module > first.
+  const preferOrder = ["Repo", "Architecture", "Module"];
+  let initial = null;
+  for (const t of preferOrder) {
+    initial = bundle.nodes.find((n) => n.data.type === t);
+    if (initial) break;
+  }
+  initial = initial || bundle.nodes[0];
+  if (initial) showDetail(initial.data.id);
+})();
+
+</script>
+</body>
+</html>

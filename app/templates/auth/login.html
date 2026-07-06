@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Prijava{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card">
+      <div class="card-body p-4">
+        <h4 class="card-title text-center mb-4">🔧 Prijava</h4>
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Korisničko ime</label>
+            <input type="text" name="username" class="form-control" autofocus required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Lozinka</label>
+            <div class="input-group">
+              <input type="password" name="password" id="passwordInput" class="form-control" required>
+              <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" tabindex="-1" title="Prikaži/sakrij lozinku">
+                <span id="eyeIcon">👁️</span>
+              </button>
+            </div>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="remember" class="form-check-input" id="rememberMe">
+            <label class="form-check-label" for="rememberMe">Zapamti me (30 dana)</label>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Prijavi se</button>
+        </form>
+        <hr>
+        <p class="text-center mb-0">Nemate nalog? <a href="{{ url_for('auth.register') }}">Registrujte se</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function togglePassword() {
+  var inp = document.getElementById('passwordInput');
+  var icon = document.getElementById('eyeIcon');
+  if (inp.type === 'password') { inp.type = 'text'; icon.textContent = '🙈'; }
+  else { inp.type = 'password'; icon.textContent = '👁️'; }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Top kupci i vozila{% endblock %}
+{% block content %}
+<h4 class="mb-3">🚗 Top kupci i vozila</h4>
+
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small">Od</label>
+      <input type="date" name="start" class="form-control" value="{{ start.isoformat() }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Do</label>
+      <input type="date" name="end" class="form-control" value="{{ end.isoformat() }}">
+    </div>
+    <div class="col-auto"><button class="btn btn-primary">Prikaži</button></div>
+  </form>
+  <div class="text-muted small mt-2">{{ start | srdate }} — {{ end | srdate }}</div>
+</div></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">👤 Top kupci (po prometu)</div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>#</th><th>Vlasnik</th><th>Telefon</th><th class="money">Servisa</th><th class="money">Promet</th>{% if current_user.is_admin %}<th class="money">Profit</th>{% endif %}</tr>
+          </thead>
+          <tbody>
+          {% for name, data in top_owners %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><strong>{{ name }}</strong></td>
+              <td>{{ data.phone }}</td>
+              <td class="money">{{ data.services }}</td>
+              <td class="money">{{ data.revenue | currency }}</td>
+              {% if current_user.is_admin %}<td class="money text-success">{{ data.profit | currency }}</td>{% endif %}
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Nema podataka.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">🚗 Top vozila (po prometu)</div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>#</th><th>Registracija</th><th>Vozilo</th><th>Vlasnik</th><th class="money">Servisa</th><th class="money">Promet</th>{% if current_user.is_admin %}<th class="money">Profit</th>{% endif %}</tr>
+          </thead>
+          <tbody>
+          {% for row in top_vehicles %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><span class="plate-badge">{{ row.car.plate }}</span></td>
+              <td>{{ row.car.description }}</td>
+              <td>{{ row.car.owner_name }}</td>
+              <td class="money">{{ row.services }}</td>
+              <td class="money">{{ row.revenue | currency }}</td>
+              {% if current_user.is_admin %}<td class="money text-success">{{ row.profit | currency }}</td>{% endif %}
+            </tr>
+          {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-3">Nema podataka.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

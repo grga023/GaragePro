@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ car.plate }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      {% if car.photo_path %}
+        <img src="{{ url_for('media', filename=car.photo_path) }}" class="car-photo mb-3">
+      {% else %}
+        <div class="bg-light text-muted text-center py-5 mb-3 rounded">Bez slike</div>
+      {% endif %}
+      <h5><span class="plate-badge">{{ car.plate }}</span></h5>
+      <table class="table table-sm mb-0">
+        <tr><td class="text-muted">Vlasnik</td><td><strong>{{ car.owner_name }}</strong></td></tr>
+        <tr><td class="text-muted">Telefon</td><td>{{ car.phone or '-' }}</td></tr>
+        <tr><td class="text-muted">Vozilo</td><td>{{ car.description or '-' }}</td></tr>
+        <tr><td class="text-muted">Gorivo</td><td>{{ FUEL_LABELS.get(car.fuel_type, car.fuel_type or '-') }}</td></tr>
+        <tr><td class="text-muted">Kilometraža</td><td><strong>{{ '{:,}'.format(car.mileage).replace(',', '.') if car.mileage else '-' }} km</strong></td></tr>
+      </table>
+      <div class="mt-3 d-grid gap-2">
+        <a href="{{ url_for('services.new', car_id=car.id) }}" class="btn btn-primary">➕ Novi servis za ovo vozilo</a>
+        <a href="{{ url_for('cars.edit', car_id=car.id) }}" class="btn btn-outline-secondary btn-sm">Izmeni podatke</a>
+        <div class="btn-group btn-group-sm">
+          <button onclick="inlinePrint('{{ url_for('printing.car', car_id=car.id, mode='customer') }}')" class="btn btn-outline-dark">🖨️ Sve (kupac)</button>
+          {% if current_user.is_admin or car.services %}
+          <button onclick="inlinePrint('{{ url_for('printing.car', car_id=car.id, mode='owner') }}')" class="btn btn-outline-dark">🖨️ Sve (vlasnik)</button>
+          {% endif %}
+        </div>
+        <div class="btn-group btn-group-sm">
+          <a href="{{ url_for('printing.car_pdf', car_id=car.id, mode='customer') }}" class="btn btn-outline-danger">📄 PDF (kupac)</a>
+          {% if current_user.is_admin or car.services %}
+          <a href="{{ url_for('printing.car_pdf', car_id=car.id, mode='owner') }}" class="btn btn-outline-danger">📄 PDF (vlasnik)</a>
+          {% endif %}
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">Istorija servisa {% if not current_user.is_admin %}<span class="text-muted small">(samo Vaši)</span>{% endif %}</div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>Datum</th><th class="money">Km</th><th>Delovi</th>{% if current_user.is_admin %}<th>Radnik</th>{% endif %}<th class="money">Ukupno</th><th></th></tr>
+          </thead>
+          <tbody>
+          {% for s in services %}
+            <tr>
+              <td>{{ s.date | srdate }}</td>
+              <td class="money">{{ '{:,}'.format(s.mileage).replace(',', '.') if s.mileage else '-' }}</td>
+              <td>{{ s.parts | length }} kom.</td>
+              {% if current_user.is_admin %}<td>{{ s.worker.full_name }}</td>{% endif %}
+              <td class="money">{{ s.total_full | currency }}</td>
+              <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Nema servisa za ovo vozilo.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

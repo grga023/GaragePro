@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Registracija{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body p-4">
+        <h4 class="card-title text-center mb-4">Registracija radnika</h4>
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Ime i prezime</label>
+            <input type="text" name="full_name" class="form-control" value="{{ full_name or '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Korisničko ime</label>
+            <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">E-mail</label>
+            <input type="email" name="email" class="form-control" value="{{ email or '' }}" required>
+          </div>
+          <div class="row">
+            <div class="col mb-3">
+              <label class="form-label">Lozinka</label>
+              <input type="password" name="password" class="form-control" required>
+            </div>
+            <div class="col mb-3">
+              <label class="form-label">Potvrda lozinke</label>
+              <input type="password" name="password2" class="form-control" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success w-100">Registruj se</button>
+        </form>
+        <p class="text-muted small mt-3 mb-0">
+          Prvi kreirani nalog automatski postaje <strong>administrator</strong>.
+        </p>
+        <p class="text-center mt-2 mb-0"><a href="{{ url_for('auth.login') }}">Nazad na prijavu</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

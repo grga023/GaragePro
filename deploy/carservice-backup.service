@@ -1,0 +1,13 @@
+# systemd servis koji pravi rezervnu kopiju (pokreće ga tajmer ispod).
+# Instalira se preko deploy/install_pi.sh, ili ručno (prilagodite putanje).
+
+[Unit]
+Description=Auto Servis - rezervna kopija baze i slika
+After=network.target
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/carservice
+ExecStart=/home/pi/carservice/.venv/bin/python /home/pi/carservice/backup.py

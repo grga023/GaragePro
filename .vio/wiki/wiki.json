@@ -1,0 +1,110 @@
+{
+  "repo_notes": "Auto Servis is a Python/Flask web application for managing a car-repair workshop (auto-mechanic service). It is designed to run on a Raspberry Pi Zero 2W (as a systemd service) or Windows (for development). The interface language is Serbian (Latin script).\n\nStack: Flask 3.0, Flask-SQLAlchemy (SQLite backend), Flask-Login, Flask-WTF (CSRF), Waitress (production WSGI), APScheduler (background journal e-mailing), xhtml2pdf + ReportLab (PDF generation), Pillow (image handling), python-dotenv. Frontend: Bootstrap 5, Chart.js, custom JS (analytics, service form, dark theme toggle).\n\nKey features:\n- Two user roles: admin and radnik (worker). First registered user becomes admin.\n- Admin sees all services/prices; workers see only their own work.\n- Cars tracked by license plate: owner, mileage, photo, brand/model/engine/fuel/year.\n- Service records: parts table (retail price, discounted/cost price, quantity), labor price/description, date, profit calculation.\n- Plate-first service flow: enter plate \u2192 if car exists, add service; if not, register car first.\n- Mileage auto-updated from most recent service reading.\n- Printing: customer copy (no labor, retail prices) and owner copy (all prices, profit). Single service or all services for a car. HTML print + PDF export.\n- Journals: daily/weekly/monthly, per worker or shop-wide. E-mail sending via SMTP.\n- Analytics: profit/parts analysis with Chart.js charts (revenue/profit over time, revenue structure, parts price comparison, profit per worker).\n- Company setup: name, address, contact, logo (admin only).\n- Backup: consistent SQLite snapshot + uploads zipped; admin UI + CLI + scheduled.\n- Security: CSRF protection, login throttling (IP-based), session-based auth, security headers (CSP, X-Content-Type-Options, X-Frame-Options), admin_required decorator, deactivated user ejection.\n- Dark/light theme toggle (localStorage-persisted).\n\nLayout:\n- app/ \u2014 Flask package (factory in __init__.py, config.py, extensions.py, models.py, security.py, auth.py, main.py, cars.py, services.py, reports.py, printing.py, pdf.py, email_utils.py, scheduler.py, utils.py, templates/, static/)\n- Root scripts: serve.py (Waitress production), run.py (Flask dev), init_db.py (schema + demo seed), backup.py (CLI backup)\n- deploy/ \u2014 systemd unit file for Raspberry Pi\n- requirements.txt \u2014 pinned dependencies\n\nData model: User, Company (single-row), Car, Service, Part. Service.total_full = labor + parts(retail). Service.total_profit = labor + (parts retail - parts cost). Relationships: User\u2192Services, Car\u2192Services (cascade delete), Service\u2192Parts (cascade delete).\n\nEntrypoints: serve.py (production), run.py (development), init_db.py (DB setup), backup.py (CLI backup).",
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "High-level description of Auto Servis: what it is, tech stack, project layout, how parts fit together, and how to get started.",
+      "parent": null,
+      "concept_id": "overview"
+    },
+    {
+      "title": "Application Factory",
+      "purpose": "How create_app() in __init__.py wires extensions, blueprints, middleware, error handlers, Jinja helpers, security headers, and the optional scheduler.",
+      "parent": "Overview",
+      "concept_id": "modules/app"
+    },
+    {
+      "title": "Configuration",
+      "purpose": "All settings in config.py: database, uploads, SMTP, security, scheduler, environment variable overrides via .env.",
+      "parent": "Application Factory",
+      "concept_id": "architecture/configuration"
+    },
+    {
+      "title": "Data Models",
+      "purpose": "The five SQLAlchemy models (User, Company, Car, Service, Part), their columns, relationships, and derived price/profit properties.",
+      "parent": "Overview",
+      "concept_id": "files/app/models"
+    },
+    {
+      "title": "Authentication & Users",
+      "purpose": "Login, registration, login throttling, role management (admin/worker), user creation, toggle active/role \u2014 the auth blueprint.",
+      "parent": "Overview",
+      "concept_id": "files/app/auth"
+    },
+    {
+      "title": "Dashboard & Setup",
+      "purpose": "The main blueprint: dashboard with today/month stats and recent services; company setup (name, address, logo).",
+      "parent": "Overview",
+      "concept_id": "files/app/main"
+    },
+    {
+      "title": "Car Management",
+      "purpose": "Car registration, listing (search by plate/owner/brand), detail view, editing \u2014 the cars blueprint.",
+      "parent": "Overview",
+      "concept_id": "files/app/cars"
+    },
+    {
+      "title": "Service Records",
+      "purpose": "The plate-first service flow, creating/editing/deleting services, parts management, mileage recomputation, listing \u2014 the services blueprint.",
+      "parent": "Overview",
+      "concept_id": "files/app/services"
+    },
+    {
+      "title": "Reports & Analytics",
+      "purpose": "Journals (daily/weekly/monthly), per-worker and shop-wide summaries, profit analytics with Chart.js, e-mail sending of journals.",
+      "parent": "Overview",
+      "concept_id": "files/app/reports"
+    },
+    {
+      "title": "Printing & PDF Export",
+      "purpose": "Customer and owner print copies (HTML print dialog + PDF download via xhtml2pdf), single service or all services for a car.",
+      "parent": "Overview",
+      "concept_id": "files/app/printing"
+    },
+    {
+      "title": "Backup System",
+      "purpose": "Consistent SQLite snapshot + uploads zip, admin UI, CLI script, scheduled automatic backups, pruning.",
+      "parent": "Overview",
+      "concept_id": "files/app/backup"
+    },
+    {
+      "title": "Utilities",
+      "purpose": "Helper functions: Serbian currency/date formatting, image upload with Pillow resizing, period range calculation.",
+      "parent": "Overview",
+      "concept_id": "files/app/utils"
+    },
+    {
+      "title": "Background Scheduler",
+      "purpose": "APScheduler integration: automatic daily/weekly/monthly journal e-mailing and nightly backups.",
+      "parent": "Overview",
+      "concept_id": "architecture/scheduler"
+    },
+    {
+      "title": "Frontend Assets",
+      "purpose": "Bootstrap 5 UI, Chart.js analytics charts, service form JS (live part-row management and totals), dark/light theme toggle.",
+      "parent": "Overview",
+      "concept_id": "modules/app/static/js"
+    },
+    {
+      "title": "Security Architecture",
+      "purpose": "Cross-cutting security: CSRF protection, login throttling, admin_required decorator, security headers, session hardening, deactivated-user ejection.",
+      "parent": "Overview",
+      "concept_id": "architecture/security"
+    },
+    {
+      "title": "Pricing & Profit Model",
+      "purpose": "How retail/discounted prices, labor, and profit are calculated end-to-end across Part, Service, reports, and printing.",
+      "parent": "Overview",
+      "concept_id": "architecture/pricing"
+    },
+    {
+      "title": "Deployment",
+      "purpose": "Production deployment on Raspberry Pi (systemd + Waitress), Windows quick start, init_db.py seeding, .env configuration.",
+      "parent": "Overview",
+      "concept_id": "architecture/deployment"
+    }
+  ],
+  "limits": {
+    "max_pages": 30
+  }
+}

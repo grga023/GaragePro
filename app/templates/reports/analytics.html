@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Analitika{% endblock %}
+{% block content %}
+<h4 class="mb-3">📈 Analiza profita i cena delova</h4>
+
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small">Od</label>
+      <input type="date" name="start" class="form-control" value="{{ start.isoformat() }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Do</label>
+      <input type="date" name="end" class="form-control" value="{{ end.isoformat() }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Vrsta servisa</label>
+      <select name="service_type" class="form-select">
+        <option value="" {{ 'selected' if not service_type }}>Sve vrste</option>
+        {% for key, label in SERVICE_TYPES %}
+        <option value="{{ key }}" {{ 'selected' if service_type == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if current_user.is_admin %}
+    <div class="col-auto">
+      <label class="form-label small">Obuhvat</label>
+      <select name="scope" class="form-select">
+        <option value="me"  {{ 'selected' if scope=='me' }}>Ja ({{ current_user.full_name }})</option>
+        <option value="all" {{ 'selected' if scope=='all' }}>Ceo servis (svi)</option>
+        {% for w in workers %}
+          <option value="worker:{{ w.id }}" {{ 'selected' if scope=='worker:'~w.id }}>{{ w.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="col-auto"><button class="btn btn-primary">Prikaži</button></div>
+    <div class="col-auto"><a href="{{ url_for('reports.analytics_export', start=start.isoformat(), end=end.isoformat(), scope=scope, service_type=service_type) }}" class="btn btn-outline-success">📥 CSV</a></div>
+  </form>
+  <div class="text-muted small mt-2">{{ scope_label }} • {{ start | srdate }} — {{ end | srdate }} • {{ totals.count }} servisa</div>
+</div></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card h-100">
+    <div class="card-header">Analiza cena delova</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td class="text-muted">Prodajna vrednost (bez popusta)</td><td class="money">{{ totals.parts_full | currency }}</td></tr>
+        <tr><td class="text-muted">Nabavna vrednost (sa popustom)</td><td class="money">{{ totals.parts_cost | currency }}</td></tr>
+        <tr class="border-top"><td><strong>Razlika (marža na delove)</strong></td><td class="money text-success"><strong>{{ totals.parts_profit | currency }}</strong></td></tr>
+        <tr><td class="text-muted">Marža %</td><td class="money">
+          {% if totals.parts_cost %}{{ '%.1f'|format(totals.parts_profit / totals.parts_cost * 100) }}%{% else %}-{% endif %}
+        </td></tr>
+      </table>
+    </div>
+  </div></div>
+
+  <div class="col-md-4"><div class="card h-100">
+    <div class="card-header">Struktura prometa</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td class="text-muted">Delovi (bez popusta)</td><td class="money">{{ totals.parts_full | currency }}</td></tr>
+        <tr><td class="text-muted">Rad</td><td class="money">{{ totals.labor | currency }}</td></tr>
+        <tr class="border-top"><td><strong>Ukupan promet</strong></td><td class="money"><strong>{{ totals.revenue | currency }}</strong></td></tr>
+      </table>
+    </div>
+  </div></div>
+
+  <div class="col-md-4"><div class="card h-100 border-success">
+    <div class="card-header bg-success text-white">Profit</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td class="text-muted">Marža na delove</td><td class="money">{{ totals.parts_profit | currency }}</td></tr>
+        <tr><td class="text-muted">Rad</td><td class="money">{{ totals.labor | currency }}</td></tr>
+        <tr class="border-top"><td><strong>UKUPAN PROFIT</strong></td><td class="money text-success"><strong>{{ totals.profit | currency }}</strong></td></tr>
+      </table>
+      <p class="text-muted small mt-2 mb-0">Profit = rad + (cena delova − cena sa popustom)</p>
+    </div>
+  </div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-8"><div class="card h-100"><div class="card-header">Promet i profit kroz vreme</div>
+    <div class="card-body"><canvas id="chTime" height="120"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Struktura prometa</div>
+    <div class="card-body"><canvas id="chStruct" height="200"></canvas></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="{{ 'col-lg-6' if charts.byworker else 'col-12' }}"><div class="card h-100"><div class="card-header">Delovi: prodajna vs nabavna vs marža</div>
+    <div class="card-body"><canvas id="chParts" height="140"></canvas></div></div></div>
+  {% if charts.byworker %}
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Profit po radnicima</div>
+    <div class="card-body"><canvas id="chWorker" height="140"></canvas></div></div></div>
+  {% endif %}
+</div>
+
+{% if type_stats %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header">Promet po vrsti servisa</div>
+    <div class="card-body"><canvas id="chType" height="200"></canvas></div></div></div>
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">Analiza po vrsti servisa</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th>Vrsta</th><th class="money">Broj</th><th class="money">Promet</th><th class="money">Profit</th></tr></thead>
+          <tbody>
+          {% for t in type_stats %}
+            <tr>
+              <td><a href="?start={{ start.isoformat() }}&end={{ end.isoformat() }}&scope={{ scope }}&service_type={{ t.key }}" class="badge badge-stype-{{ t.key }} text-decoration-none">{{ t.label }}</a></td>
+              <td class="money">{{ t.count }}</td>
+              <td class="money">{{ t.revenue | currency }}</td>
+              <td class="money text-success">{{ t.profit | currency }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if by_worker %}
+<div class="card">
+  <div class="card-header">Profit po radnicima</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light"><tr><th>Radnik</th><th class="money">Servisa</th><th class="money">Promet</th><th class="money">Delovi (nabavna)</th><th class="money">Marža delovi</th><th class="money">Rad</th><th class="money">Profit</th></tr></thead>
+      <tbody>
+      {% for row in by_worker %}
+        <tr>
+          <td>{{ row.worker.full_name }}</td>
+          <td class="money">{{ row.totals.count }}</td>
+          <td class="money">{{ row.totals.revenue | currency }}</td>
+          <td class="money">{{ row.totals.parts_cost | currency }}</td>
+          <td class="money">{{ row.totals.parts_profit | currency }}</td>
+          <td class="money">{{ row.totals.labor | currency }}</td>
+          <td class="money text-success"><strong>{{ row.totals.profit | currency }}</strong></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script id="chartData" type="application/json">{{ charts | tojson }}</script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

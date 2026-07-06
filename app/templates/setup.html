@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Podešavanja servisa{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h4 class="mb-3">⚙️ Podaci o servisu</h4>
+    <div class="card"><div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label">Naziv servisa</label>
+          <input type="text" name="name" class="form-control" value="{{ company.name or '' }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Adresa</label>
+          <input type="text" name="address" class="form-control" value="{{ company.address or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Kontakt (telefon / e-mail)</label>
+          <input type="text" name="contact" class="form-control" value="{{ company.contact or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Logo (prikazuje se na štampi, cca 4×2 cm)</label>
+          <input type="file" name="logo" class="form-control" accept="image/*">
+          {% if company.logo_path %}
+            <div class="mt-2">
+              <img src="{{ url_for('media', filename=company.logo_path) }}" style="max-height:80px;border:1px solid #ddd;padding:4px;border-radius:4px">
+            </div>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Sačuvaj</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

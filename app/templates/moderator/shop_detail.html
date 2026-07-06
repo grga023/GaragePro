@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Servis — {{ shop.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">🏢 {{ shop.name }}</h4>
+  <div>
+    <a href="{{ url_for('moderator.edit_shop', shop_id=shop.id) }}" class="btn btn-sm btn-outline-secondary">✏️ Uredi</a>
+    <a href="{{ url_for('moderator.index') }}" class="btn btn-sm btn-outline-primary">← Svi servisi</a>
+  </div>
+</div>
+
+{% if shop.address or shop.contact %}
+<p class="text-muted">
+  {% if shop.address %}📍 {{ shop.address }}{% endif %}
+  {% if shop.contact %} • {{ shop.contact }}{% endif %}
+</p>
+{% endif %}
+
+{# ---- Users in this shop ---- #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>👥 Korisnici servisa</span>
+  </div>
+  <div class="card-body">
+    <table class="table table-sm table-hover mb-3 align-middle">
+      <thead class="table-light">
+        <tr><th>Ime</th><th>Korisničko ime</th><th>Uloga</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ u.full_name }}</td>
+          <td>{{ u.username }}</td>
+          <td><span class="badge bg-{{ 'warning text-dark' if u.role == 'admin' else 'secondary' }}">{{ ROLE_LABELS.get(u.role, u.role) }}</span></td>
+          <td>{% if u.active %}<span class="badge bg-success">Aktivan</span>{% else %}<span class="badge bg-danger">Neaktivan</span>{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('moderator.remove_user', shop_id=shop.id, user_id=u.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" title="Ukloni iz servisa">✕</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted text-center">Nema korisnika u ovom servisu.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    {# Assign user form #}
+    <form method="post" action="{{ url_for('moderator.assign_user', shop_id=shop.id) }}" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-5">
+        <label class="form-label small">Dodeli korisnika</label>
+        <select name="user_id" class="form-select form-select-sm" required>
+          <option value="">— izaberite —</option>
+          {% for u in all_users %}
+            {% if u.shop_id != shop.id %}
+            <option value="{{ u.id }}">{{ u.full_name }} ({{ u.username }})</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Uloga</label>
+        <select name="role" class="form-select form-select-sm">
+          <option value="radnik">Radnik</option>
+          <option value="admin">Vlasnik servisa</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-success w-100">Dodeli</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ---- Cars ---- #}
+<div class="card mb-4">
+  <div class="card-header">🚗 Vozila ({{ cars | length }})</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Registracija</th><th>Vlasnik</th><th>Vozilo</th></tr>
+      </thead>
+      <tbody>
+      {% for c in cars[:20] %}
+        <tr>
+          <td><span class="plate-badge">{{ c.plate }}</span></td>
+          <td>{{ c.owner_name }}</td>
+          <td>{{ c.description }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="text-muted text-center">Nema vozila.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ---- Recent services ---- #}
+<div class="card">
+  <div class="card-header">🔧 Poslednji servisi ({{ services | length }})</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Datum</th><th>Registracija</th><th>Radnik</th><th class="money">Ukupno</th></tr>
+      </thead>
+      <tbody>
+      {% for s in services %}
+        <tr>
+          <td>{{ s.date | srdate }}</td>
+          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
+          <td>{{ s.worker.full_name }}</td>
+          <td class="money">{{ s.total_full | currency }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted text-center">Nema servisa.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

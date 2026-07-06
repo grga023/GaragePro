@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Izmena vozila' if car else 'Novo vozilo' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h4 class="mb-3">{{ 'Izmena vozila' if car else 'Registracija vozila' }}</h4>
+    <div class="card"><div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if then %}<input type="hidden" name="then" value="{{ then }}">{% endif %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Registarska oznaka *</label>
+            <input type="text" name="plate" class="form-control text-uppercase"
+                   value="{{ car.plate if car else prefill_plate }}" {{ 'readonly' if car }} required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Ime vlasnika *</label>
+            <input type="text" name="owner_name" class="form-control" value="{{ car.owner_name if car else '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Telefon</label>
+            <input type="text" name="phone" class="form-control" value="{{ car.phone if car else '' }}">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Marka</label>
+            <input type="text" name="brand" class="form-control" placeholder="BMW" value="{{ car.brand if car else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Model</label>
+            <input type="text" name="model" class="form-control" placeholder="320" value="{{ car.model if car else '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Motor</label>
+            <input type="text" name="engine" class="form-control" placeholder="2.0" value="{{ car.engine if car else '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Gorivo</label>
+            <select name="fuel_type" class="form-select">
+              <option value="">—</option>
+              {% for f in fuel_types %}
+                <option value="{{ f }}" {{ 'selected' if car and car.fuel_type == f }}>{{ FUEL_LABELS.get(f, f) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Godište</label>
+            <input type="number" name="year" class="form-control" placeholder="2020" value="{{ car.year if car and car.year else '' }}">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Kilometraža</label>
+            <input type="number" name="mileage" class="form-control" value="{{ car.mileage if car and car.mileage else '' }}">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Slika vozila</label>
+            <input type="file" name="photo" class="form-control" accept="image/*">
+          </div>
+        </div>
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">{{ 'Sačuvaj izmene' if car else 'Registruj i nastavi' }}</button>
+          <a href="{{ url_for('cars.detail', car_id=car.id) if car else url_for('cars.list_cars') }}" class="btn btn-outline-secondary">Otkaži</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

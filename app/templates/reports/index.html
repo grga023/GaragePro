@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Žurnal{% endblock %}
+{% block content %}
+<h4 class="mb-3">📒 Žurnal — {{ journal.period_label }}</h4>
+
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small">Period</label>
+      <select name="period" class="form-select">
+        <option value="day"   {{ 'selected' if period=='day' }}>Dnevni</option>
+        <option value="week"  {{ 'selected' if period=='week' }}>Nedeljni</option>
+        <option value="month" {{ 'selected' if period=='month' }}>Mesečni</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Datum (referentni)</label>
+      <input type="date" name="date" class="form-control" value="{{ ref.isoformat() }}">
+    </div>
+    {% if current_user.is_admin %}
+    <div class="col-auto">
+      <label class="form-label small">Obuhvat</label>
+      <select name="scope" class="form-select">
+        <option value="me"  {{ 'selected' if scope=='me' }}>Ja ({{ current_user.full_name }})</option>
+        <option value="all" {{ 'selected' if scope=='all' }}>Ceo servis (svi)</option>
+        {% for w in workers %}
+          <option value="worker:{{ w.id }}" {{ 'selected' if scope=='worker:'~w.id }}>{{ w.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="col-auto">
+      <button class="btn btn-primary">Prikaži</button>
+    </div>
+  </form>
+</div></div>
+
+<div class="alert alert-secondary d-flex justify-content-between align-items-center flex-wrap">
+  <div>
+    <strong>{{ journal.scope_label }}</strong><br>
+    <span class="text-muted">{{ journal.start | srdate }} — {{ journal.end | srdate }}</span>
+  </div>
+  <form method="post" action="{{ url_for('reports.send') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="period" value="{{ period }}">
+    <input type="hidden" name="date" value="{{ ref.isoformat() }}">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <button class="btn btn-outline-primary btn-sm">✉️ Pošalji na e-mail</button>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="text-muted small">Servisa</div><div class="h4 mb-0">{{ journal.totals.count }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="text-muted small">Promet</div><div class="h5 mb-0">{{ journal.totals.revenue | currency }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="text-muted small">Rad</div><div class="h5 mb-0">{{ journal.totals.labor | currency }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="text-muted small">Profit</div><div class="h5 mb-0 text-success">{{ journal.totals.profit | currency }}</div></div></div></div>
+</div>
+
+{% if journal.by_worker %}
+<div class="card mb-3">
+  <div class="card-header">Po radnicima</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light"><tr><th>Radnik</th><th class="money">Servisa</th><th class="money">Promet</th><th class="money">Rad</th><th class="money">Profit</th></tr></thead>
+      <tbody>
+      {% for row in journal.by_worker %}
+        <tr>
+          <td>{{ row.worker.full_name }}</td>
+          <td class="money">{{ row.totals.count }}</td>
+          <td class="money">{{ row.totals.revenue | currency }}</td>
+          <td class="money">{{ row.totals.labor | currency }}</td>
+          <td class="money text-success">{{ row.totals.profit | currency }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">Servisi u periodu</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Datum</th><th>Registracija</th><th>Vlasnik</th>
+          {% if not journal.worker %}<th>Radnik</th>{% endif %}
+          <th class="money">Delovi</th><th class="money">Rad</th><th class="money">Ukupno</th><th class="money">Profit</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for s in journal.services %}
+        <tr>
+          <td>{{ s.date | srdate }}</td>
+          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
+          <td>{{ s.car.owner_name }}</td>
+          {% if not journal.worker %}<td>{{ s.worker.full_name }}</td>{% endif %}
+          <td class="money">{{ s.parts_total_full | currency }}</td>
+          <td class="money">{{ s.labor_price | currency }}</td>
+          <td class="money">{{ s.total_full | currency }}</td>
+          <td class="money text-success">{{ s.total_profit | currency }}</td>
+          <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">›</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Nema servisa u ovom periodu.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Vozila{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Vozila</h4>
+  <a href="{{ url_for('cars.new') }}" class="btn btn-primary btn-sm">➕ Novo vozilo</a>
+</div>
+
+<form class="mb-3" method="get">
+  <div class="input-group">
+    <input type="text" name="q" class="form-control" placeholder="Pretraga po registraciji, vlasniku ili modelu…" value="{{ q }}">
+    <button class="btn btn-outline-secondary">Traži</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Registracija</th><th>Vlasnik</th><th>Telefon</th><th>Vozilo</th><th class="money">Kilometraža</th><th>Servisa</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for car in cars %}
+        <tr>
+          <td><span class="plate-badge">{{ car.plate }}</span></td>
+          <td>{{ car.owner_name }}</td>
+          <td>{{ car.phone or '' }}</td>
+          <td>{{ car.description }}</td>
+          <td class="money">{{ '{:,}'.format(car.mileage).replace(',', '.') if car.mileage else '-' }} km</td>
+          <td>{{ car.services | length }}</td>
+          <td><a href="{{ url_for('cars.detail', car_id=car.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Nema vozila.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

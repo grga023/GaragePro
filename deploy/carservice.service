@@ -1,0 +1,28 @@
+# systemd servis za Auto Servis aplikaciju na Raspberry Pi Zero 2W
+#
+# Instalacija:
+#   sudo cp deploy/carservice.service /etc/systemd/system/carservice.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now carservice
+#   sudo systemctl status carservice
+#
+# Prilagodite putanje (User, WorkingDirectory, ExecStart) svom okruženju.
+
+[Unit]
+Description=Auto Servis (Flask + Waitress)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/carservice
+Environment=PORT=8000
+Environment=THREADS=4
+Environment=ENABLE_SCHEDULER=true
+ExecStart=/home/pi/carservice/.venv/bin/python /home/pi/carservice/serve.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

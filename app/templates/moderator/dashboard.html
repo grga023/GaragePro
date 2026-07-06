@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}Moderator — Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">📊 Dashboard</h4>
+  <div class="d-flex gap-1">
+    <a href="{{ url_for('moderator.dashboard_export', period=period, service_type=filter_type) }}" class="btn btn-outline-success btn-sm">📥 CSV</a>
+    <a href="{{ url_for('moderator.shops') }}" class="btn btn-outline-primary btn-sm">🏢 Radnje</a>
+  </div>
+</div>
+
+<div class="card mb-3"><div class="card-body py-2">
+  <form method="get" class="filter-bar">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-auto">
+        <label class="form-label small mb-0">Period</label>
+        <select name="period" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="today" {{ 'selected' if period=='today' }}>Danas</option>
+          <option value="week" {{ 'selected' if period=='week' }}>Ova nedelja</option>
+          <option value="month" {{ 'selected' if period=='month' }}>Ovaj mesec</option>
+          <option value="year" {{ 'selected' if period=='year' }}>Ova godina</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-auto">
+        <label class="form-label small mb-0">Vrsta</label>
+        <select name="service_type" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="" {{ 'selected' if not filter_type }}>Sve vrste</option>
+          {% for key, label in SERVICE_TYPES %}
+          <option value="{{ key }}" {{ 'selected' if filter_type == key }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-auto">
+        <span class="text-muted small">{{ period_start | srdate }} — {{ period_end | srdate }}{% if filter_type %} • {{ SERVICE_TYPE_LABELS[filter_type] }}{% endif %}</span>
+      </div>
+    </div>
+  </form>
+</div></div>
+
+{% for a in alerts %}
+<div class="alert alert-{{ a.type }} alert-dismissible fade show py-2" role="alert">
+  {{ a.msg }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">🏢 Servisa (ukupno)</div>
+      <div class="display-6">{{ stats.total_shops }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">👥 Korisnika</div>
+      <div class="display-6">{{ stats.total_users }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">🚗 Vozila</div>
+      <div class="display-6">{{ stats.total_cars }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">🔧 Servisa (svi)</div>
+      <div class="display-6">{{ stats.total_services }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center border-primary"><div class="card-body">
+      <div class="text-muted small">Danas servisa</div>
+      <div class="display-6 text-primary">{{ stats.today_count }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Promet ({{ period_label | lower }})</div>
+      <div class="h4 mt-2">{{ stats.period_revenue | currency }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center"><div class="card-body">
+      <div class="text-muted small">Servisa ({{ period_label | lower }})</div>
+      <div class="display-6">{{ stats.period_count }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center border-success"><div class="card-body">
+      <div class="text-muted small">Profit ({{ period_label | lower }})</div>
+      <div class="h4 mt-2 text-success">{{ stats.period_profit | currency }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="card h-100 border-success"><div class="card-header bg-success text-white">💰 Finansijski pregled</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td class="text-muted">Delovi (prodajna)</td><td class="money">{{ stats.period_parts_full | currency }}</td></tr>
+        <tr><td class="text-muted">Delovi (nabavna)</td><td class="money">{{ stats.period_parts_cost | currency }}</td></tr>
+        <tr><td class="text-muted">Marža na delove</td><td class="money text-success">{{ stats.period_parts_profit | currency }}</td></tr>
+        <tr><td class="text-muted">Rad</td><td class="money">{{ stats.period_labor | currency }}</td></tr>
+        <tr class="border-top"><td><strong>Ukupan promet</strong></td><td class="money"><strong>{{ stats.period_revenue | currency }}</strong></td></tr>
+        <tr><td><strong>Ukupan profit</strong></td><td class="money text-success"><strong>{{ stats.period_profit | currency }}</strong></td></tr>
+      </table>
+    </div></div>
+  </div>
+
+  <div class="col-6 col-md-4">
+    <div class="card h-100">
+      <div class="card-header">📊 Po vrsti</div>
+      <div class="card-body">
+        <canvas id="chTypeDistrib" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4">
+    <div class="card h-100">
+      <div class="card-header">Vrsta — detalji</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>Vrsta</th><th class="money">Broj</th><th class="money">Promet</th><th class="money">Profit</th></tr>
+          </thead>
+          <tbody>
+          {% for t in type_stats %}
+            <tr{% if filter_type == t.key %} class="table-active"{% endif %}>
+              <td><a href="?period={{ period }}&service_type={{ t.key }}" class="badge badge-stype-{{ t.key }} text-decoration-none">{{ t.label }}</a></td>
+              <td class="money">{{ t.count }}</td>
+              <td class="money">{{ t.revenue | currency }}</td>
+              <td class="money text-success">{{ t.profit | currency }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <th><a href="?period={{ period }}" class="text-decoration-none">Ukupno</a></th>
+              <th class="money">{{ type_stats | sum(attribute='count') }}</th>
+              <th class="money">{{ type_stats | map(attribute='revenue') | sum | currency }}</th>
+              <th class="money text-success">{{ type_stats | map(attribute='profit') | sum | currency }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">📈 Promet i profit kroz vreme ({{ period_label | lower }})</div>
+  <div class="card-body"><canvas id="chTrend" height="100"></canvas></div>
+</div>
+
+{% if worker_stats %}
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header">👤 Radnici ({{ period_label | lower }})</div>
+      <div class="card-body"><canvas id="chWorker" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header">👤 Radnici — detalji</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>Radnik</th><th class="money">Servisa</th><th class="money">Promet</th><th class="money">Rad</th><th class="money">Profit</th></tr>
+          </thead>
+          <tbody>
+          {% for w in worker_stats %}
+            <tr>
+              <td>{{ w.name }}</td>
+              <td class="money">{{ w.count }}</td>
+              <td class="money">{{ w.revenue | currency }}</td>
+              <td class="money">{{ w.labor | currency }}</td>
+              <td class="money text-success">{{ w.profit | currency }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if shop_stats %}
+<div class="card mb-4">
+  <div class="card-header">🏢 Servisi po radnjama ({{ period_label | lower }})</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>Servis</th><th class="money">Broj servisa</th><th class="money">Promet</th><th class="money">Profit</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for row in shop_stats %}
+        <tr>
+          <td>{{ row.shop.name }}</td>
+          <td class="money">{{ row.count }}</td>
+          <td class="money">{{ row.revenue | currency }}</td>
+          <td class="money text-success">{{ row.profit | currency }}</td>
+          <td><a href="{{ url_for('moderator.shop_detail', shop_id=row.shop.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span>Poslednji servisi{% if filter_type %} — {{ SERVICE_TYPE_LABELS[filter_type] }}{% endif %}</span>
+    <a href="{{ url_for('moderator.shops') }}" class="small">Sve radnje »</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Datum</th><th>Vrsta</th><th class="d-none d-md-table-cell">Radnja</th><th>Registracija</th>
+          <th class="d-none d-lg-table-cell">Vozilo</th><th class="d-none d-md-table-cell">Radnik</th>
+          <th class="money">Ukupno</th><th class="money d-none d-sm-table-cell">Profit</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in recent %}
+        <tr>
+          <td class="text-nowrap">{{ s.date | srdate }}</td>
+          <td><a href="?period={{ period }}&service_type={{ s.service_type }}" class="badge badge-stype-{{ s.service_type }} text-decoration-none">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</a></td>
+          <td class="d-none d-md-table-cell small">{{ s.car.shop.name if s.car.shop else '-' }}</td>
+          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
+          <td class="d-none d-lg-table-cell">{{ s.car.description }}</td>
+          <td class="d-none d-md-table-cell">{{ s.worker.full_name }}</td>
+          <td class="money">{{ s.total_full | currency }}</td>
+          <td class="money text-success d-none d-sm-table-cell">{{ s.total_profit | currency }}</td>
+          <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Nema servisa.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script>
+(function() {
+  var typeData = {{ type_chart | tojson }};
+  var trendData = {{ trend_chart | tojson }};
+  var workerData = {{ worker_chart | tojson }};
+  var colors = ['#dc3545', '#198754', '#0d6efd'];
+  function money(v) { return Number(v||0).toLocaleString('sr-RS', {maximumFractionDigits:0}) + ' RSD'; }
+
+  new Chart(document.getElementById('chTypeDistrib'), {
+    type: 'doughnut',
+    data: {
+      labels: typeData.labels,
+      datasets: [{ data: typeData.data, backgroundColor: colors, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return ctx.label + ': ' + ctx.parsed + ' servisa, promet: ' + money(typeData.revenue[ctx.dataIndex]);
+          }
+        }}
+      }
+    }
+  });
+
+  var elTrend = document.getElementById('chTrend');
+  if (elTrend && trendData.labels.length > 0) {
+    new Chart(elTrend, {
+      data: {
+        labels: trendData.labels,
+        datasets: [
+          { type: 'bar', label: 'Promet', data: trendData.revenue,
+            backgroundColor: 'rgba(13,110,253,.5)', borderColor: '#0d6efd' },
+          { type: 'line', label: 'Profit', data: trendData.profit,
+            borderColor: '#198754', backgroundColor: 'rgba(25,135,84,.2)', tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        scales: { y: { ticks: { callback: function(v) { return money(v); } } } },
+        plugins: { tooltip: { callbacks: {
+          label: function(c) { return (c.dataset.label||'') + ': ' + money(c.parsed.y); }
+        }}}
+      }
+    });
+  }
+
+  var elWorker = document.getElementById('chWorker');
+  if (elWorker && workerData.labels.length > 0) {
+    new Chart(elWorker, {
+      type: 'bar',
+      data: {
+        labels: workerData.labels,
+        datasets: [
+          { label: 'Promet', data: workerData.revenue,
+            backgroundColor: 'rgba(13,110,253,.6)', borderColor: '#0d6efd', borderWidth: 1 },
+          { label: 'Profit', data: workerData.profit,
+            backgroundColor: 'rgba(25,135,84,.6)', borderColor: '#198754', borderWidth: 1 }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: true,
+        scales: { x: { ticks: { callback: function(v) { return money(v); } } } },
+        plugins: { tooltip: { callbacks: {
+          label: function(c) { return (c.dataset.label||'') + ': ' + money(c.parsed.x); }
+        }}}
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

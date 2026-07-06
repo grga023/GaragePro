@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Izmena servisa' if service else 'Novi servis' }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">{{ 'Izmena servisa' if service else 'Novi servis' }}</h4>
+  <div>
+    <span class="plate-badge">{{ car.plate }}</span>
+    <span class="text-muted ms-2">{{ car.description }} — {{ car.owner_name }}</span>
+  </div>
+</div>
+
+<form method="post" id="serviceForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="car_id" value="{{ car.id }}">
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <label class="form-label">Datum servisa</label>
+      <input type="date" name="date" class="form-control"
+             value="{{ service.date.isoformat() if service else today }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Kilometraža</label>
+      <input type="number" name="mileage" class="form-control"
+             value="{{ service.mileage if service and service.mileage else car.mileage or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Vrsta servisa</label>
+      <select name="service_type" class="form-select">
+        {% for key, label in SERVICE_TYPES %}
+        <option value="{{ key }}" {{ 'selected' if (service and service.service_type == key) or (not service and key == 'popravke') }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Ugrađeni delovi</span>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="addPart">➕ Dodaj deo</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle" id="partsTable">
+        <thead class="table-light">
+          <tr>
+            <th style="width:34%">Naziv dela</th>
+            <th style="width:10%">Količina</th>
+            <th style="width:16%">Cena (bez popusta)</th>
+            <th style="width:16%">Cena (sa popustom)</th>
+            <th style="width:16%" class="money">Ukupno</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="partsBody">
+          {% if service and service.parts %}
+            {% for p in service.parts %}
+            <tr class="part-row">
+              <td><input type="text" name="part_name[]" class="form-control form-control-sm" value="{{ p.name }}"></td>
+              <td><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="{{ p.quantity }}"></td>
+              <td><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="{{ p.price }}"></td>
+              <td><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" value="{{ p.price_with_discount }}"></td>
+              <td class="money line-total">0</td>
+              <td><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+        <tfoot>
+          <tr class="table-light">
+            <th colspan="4" class="text-end">Ukupno delovi (bez popusta):</th>
+            <th class="money" id="partsTotal">0</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Cena rada (radni sat)</label>
+      <input type="number" step="any" name="labor_price" id="laborPrice" class="form-control"
+             value="{{ service.labor_price if service else 0 }}">
+    </div>
+    <div class="col-md-8">
+      <label class="form-label">Opis rada</label>
+      <input type="text" name="labor_description" class="form-control"
+             value="{{ service.labor_description if service else '' }}">
+    </div>
+  </div>
+
+  <div class="card bg-light mb-3"><div class="card-body py-2">
+    <div class="row text-center">
+      <div class="col"><div class="text-muted small">Delovi (bez popusta)</div><div class="h5 mb-0" id="sumParts">0</div></div>
+      <div class="col"><div class="text-muted small">Rad</div><div class="h5 mb-0" id="sumLabor">0</div></div>
+      <div class="col"><div class="text-muted small">UKUPNO</div><div class="h5 mb-0 text-primary" id="sumTotal">0</div></div>
+    </div>
+  </div></div>
+
+  <button type="submit" class="btn btn-success">💾 Sačuvaj servis</button>
+  <a href="{{ url_for('cars.detail', car_id=car.id) }}" class="btn btn-outline-secondary">Otkaži</a>
+</form>
+
+<template id="partRowTemplate">
+  <tr class="part-row">
+    <td><input type="text" name="part_name[]" class="form-control form-control-sm"></td>
+    <td><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="1"></td>
+    <td><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="0"></td>
+    <td><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" value="0"></td>
+    <td class="money line-total">0</td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
+  </tr>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>window.CURRENCY = "{{ currency_code }}";</script>
+<script src="{{ url_for('static', filename='js/service_form.js') }}"></script>
+{% endblock %}
