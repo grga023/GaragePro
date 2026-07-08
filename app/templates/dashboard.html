@@ -10,9 +10,9 @@
   {% endif %}
 {% endif %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Dobrodošli, {{ current_user.full_name }}</h4>
-  <a href="{{ url_for('services.start') }}" class="btn btn-primary">➕ Novi servis</a>
+  <a href="{{ url_for('services.start') }}" class="btn btn-primary btn-sm">➕ Novi servis</a>
 </div>
 
 {% for a in alerts %}
@@ -89,8 +89,8 @@
     <table class="table table-sm table-hover mb-0 align-middle">
       <thead class="table-light">
         <tr>
-          <th>Datum</th><th>Registracija</th><th>Vozilo</th><th>Vlasnik</th>
-          {% if current_user.is_admin %}<th>Radnik</th>{% endif %}
+          <th>Datum</th><th>Registracija</th><th class="d-mobile-none">Vozilo</th><th class="d-mobile-none">Vlasnik</th>
+          {% if current_user.is_admin %}<th class="d-mobile-none">Radnik</th>{% endif %}
           <th class="money">Ukupno</th><th></th>
         </tr>
       </thead>
@@ -98,12 +98,12 @@
       {% for s in recent %}
         <tr>
           <td>{{ s.date | srdate }}</td>
-          <td><span class="plate-badge">{{ s.car.plate }}</span></td>
-          <td>{{ s.car.description }}</td>
-          <td>{{ s.car.owner_name }}</td>
-          {% if current_user.is_admin %}<td>{{ s.worker.full_name }}</td>{% endif %}
+          <td><a href="{{ url_for('services.detail', service_id=s.id) }}"><span class="plate-badge">{{ s.car.plate }}</span></a></td>
+          <td class="d-mobile-none">{{ s.car.description }}</td>
+          <td class="d-mobile-none">{{ s.car.owner_name }}</td>
+          {% if current_user.is_admin %}<td class="d-mobile-none">{{ s.worker.full_name }}</td>{% endif %}
           <td class="money">{{ s.total_full | currency }}</td>
-          <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
+          <td class="d-none d-md-table-cell"><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">Otvori</a></td>
         </tr>
       {% else %}
         <tr><td colspan="7" class="text-center text-muted py-4">Još nema servisa. Kliknite „Novi servis“.</td></tr>

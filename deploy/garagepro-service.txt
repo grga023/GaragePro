@@ -1,0 +1,31 @@
+[Unit]
+Description=GaragePro — Car Service Management Platform
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=garagepro
+Group=garagepro
+WorkingDirectory=/opt/garagepro
+ExecStart=/opt/garagepro/venv/bin/python serve.py
+Restart=on-failure
+RestartSec=5
+
+Environment=PORT=8000
+Environment=HOST=0.0.0.0
+Environment=THREADS=4
+EnvironmentFile=-/opt/garagepro/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=garagepro
+
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

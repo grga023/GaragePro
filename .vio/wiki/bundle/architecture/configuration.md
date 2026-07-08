@@ -55,8 +55,8 @@ Upload subdirectories (`cars/`, `logo/`) are created automatically by `create_ap
 | `SESSION_COOKIE_SAMESITE` | — | `"Lax"` | SameSite cookie policy |
 | `SESSION_COOKIE_SECURE` | `SECURE_COOKIES` | `False` | Set `True` for HTTPS |
 | `PERMANENT_SESSION_LIFETIME` | `SESSION_HOURS` | 12h | Session expiry |
-| `LOGIN_MAX_ATTEMPTS` | `LOGIN_MAX_ATTEMPTS` | 8 | Failed logins before lockout |
-| `LOGIN_LOCKOUT_MINUTES` | `LOGIN_LOCKOUT_MINUTES` | 10 | Lockout duration |
+| `LOGIN_MAX_ATTEMPTS` | `LOGIN_MAX_ATTEMPTS` | 5 | Failed logins before lockout |
+| `LOGIN_LOCKOUT_MINUTES` | `LOGIN_LOCKOUT_MINUTES` | 15 | Lockout duration |
 | `TRUST_PROXY` | `TRUST_PROXY` | `False` | Trust X-Forwarded-* headers (nginx on Pi) |
 
 ### SMTP (E-mail)

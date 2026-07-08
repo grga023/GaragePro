@@ -15,7 +15,7 @@ resource: file:///D:/Service/app/main.py
 
 # Dashboard & Setup
 
-`app/main.py` defines the `main_bp` blueprint with two routes: the **dashboard** (landing page after login) and the **company setup** page (admin-only, used on first run and to update shop identity).
+`app/main.py` defines the `main_bp` blueprint with two routes: the **dashboard** (landing page after login) and the **company setup** page (admin-only, used on first run and to update shop identity). Moderators are redirected to the [Moderator Panel](../../architecture/moderator.md) dashboard.
 
 ## Dashboard (`/`)
 
@@ -28,17 +28,20 @@ The dashboard is the default route and requires login. It calculates and display
 | Month's service count | Current calendar month |
 | Month's revenue | Sum of `total_full` |
 | Month's profit | Sum of `total_profit` |
-| Total cars registered | All cars (global) |
+| Total cars registered | All cars (admin) or distinct cars served (worker) |
 
-It also shows the **10 most recent services** ordered by date descending.
+It also shows:
+- The **10 most recent services** ordered by date descending.
+- **Service type breakdown** for the current month (revenue/profit per type: popravke, vulkanizerski, mali servis).
+- **Smart alerts**: warnings when no services today, no services this week (mid-week), and average daily stats.
 
-Workers see only their own services; admins see everything — this is enforced by filtering on `Service.worker_id == current_user.id` when `not current_user.is_admin`.
+Workers see only their own services; admins see everything within their shop — enforced via `scoped_query()` and filtering on `Service.worker_id`.
 
 ## Company setup (`/setup`)
 
-Admin-only (protected by `@admin_required`). Manages the single-row `Company` record:
-- **Name**, **address**, **contact** — text fields.
-- **Logo** — uploaded image, resized to max 600px via `save_image()`. Old logo files are removed on replacement.
+Admin-only (protected by `@admin_required`). Moderators are redirected to the moderator panel. Manages both the legacy `Company` record and the user's `Shop` record:
+- **Name**, **address**, **contact** — text fields (synced to both Company and Shop).
+- **Logo** — uploaded image, resized to max 600px via `save_image()`. Old logo files are removed on replacement. Logo path is also synced to the Shop.
 
 On the very first visit, if no Company row exists, one is auto-created with `id=1`.
 
@@ -52,10 +55,12 @@ On the very first visit, if no Company row exists, one is auto-created with `id=
 
 ## Connections
 
-- Queries [Data Models](models.md) — `Company`, `Car`, `Service`
+- Queries [Data Models](models.md) — `Company`, `Car`, `Service`, `Shop`, `SERVICE_TYPES`
 - Uses `period_range()` and `save_image()` from [Utilities](utils.md)
+- Uses `scoped_query()` from `security.py` for multi-tenant data isolation
 - Protected by `admin_required` from [Authentication & Users](auth.md)
 - Stats feed into the [Pricing & Profit Model](../architecture/pricing.md) calculations
+- Moderators redirect to [Moderator Panel](../../architecture/moderator.md)
 
 # Citations
 - app/main.py:1

@@ -55,6 +55,7 @@ Both `new()` and `edit()` accept an uploaded photo file. The photo is saved via 
 
 - Uses [Data Models](models.md) — `Car`, `Service`, `FUEL_TYPES`
 - Photo handling via `save_image()` from [Utilities](utils.md)
+- Multi-tenant: new cars are assigned `shop_id=current_user.shop_id`; listing uses `scoped_query()` for admin view
 - Integrated with [Service Records](services.md) plate-first flow
 - Service history links to [Printing & PDF](printing.md)
 

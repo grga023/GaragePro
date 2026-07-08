@@ -262,6 +262,11 @@
   var trendData = {{ trend_chart | tojson }};
   var workerData = {{ worker_chart | tojson }};
   var colors = ['#dc3545', '#198754', '#0d6efd'];
+  var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+  var txtColor = isDark ? '#ccc' : '#666';
+  var gridColor = isDark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)';
+  Chart.defaults.color = txtColor;
+  Chart.defaults.borderColor = gridColor;
   function money(v) { return Number(v||0).toLocaleString('sr-RS', {maximumFractionDigits:0}) + ' RSD'; }
 
   new Chart(document.getElementById('chTypeDistrib'), {

@@ -10,4 +10,4 @@ if __name__ == "__main__":
     app = create_app()
     with app.app_context():
         path = create_backup()
-        print(f"Rezervna kopija napravljena: {path}")
+        print(f"GaragePro rezervna kopija napravljena: {path}")

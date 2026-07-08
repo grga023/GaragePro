@@ -7,6 +7,10 @@
   try { d = JSON.parse(el.textContent); } catch (e) { return; }
   var cur = d.currency || "RSD";
 
+  var isDark = document.documentElement.getAttribute("data-bs-theme") === "dark";
+  Chart.defaults.color = isDark ? "#ccc" : "#666";
+  Chart.defaults.borderColor = isDark ? "rgba(255,255,255,.1)" : "rgba(0,0,0,.1)";
+
   function money(v) {
     return Number(v || 0).toLocaleString("sr-RS", { maximumFractionDigits: 0 }) + " " + cur;
   }

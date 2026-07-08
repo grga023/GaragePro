@@ -36,65 +36,192 @@ Jezik interfejsa: **srpski (latinica)**.
 
 ---
 
-## Brzo pokretanje na Windows-u (za testiranje)
+## Preduslov
 
-Najlakše — dvoklik na **`run_windows.bat`** (kreira okruženje, instalira
-zavisnosti, ubacuje demo podatke i pokreće server).
+- **Python 3.10+** (preporučeno 3.11 ili 3.12)
+- **Tesseract OCR** (opcionalno — potreban samo za OCR parsiranje faktura)
 
-Ili ručno:
+---
 
-```powershell
-cd D:\Service
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-python init_db.py --demo      # kreira bazu + demo podatke
-python serve.py               # ili: python run.py  (debug režim)
+## Instalacija na PC (Windows)
+
+### Opcija A — automatski (preporučeno)
+
+Dvoklik na **`run_windows.bat`** — skripta sama kreira virtualno okruženje,
+instalira zavisnosti, ubacuje demo podatke i pokreće server.
+
+### Opcija B — ručno
+
+1. **Kloniranje / preuzimanje projekta:**
+
+   ```powershell
+   git clone <repo-url>  D:\GaragePro
+   cd D:\GaragePro
+   ```
+
+2. **Kreiranje virtualnog okruženja i instalacija zavisnosti:**
+
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Konfiguracija (opcionalno):**
+
+   ```powershell
+   copy .env.example .env
+   notepad .env                # podesite SECRET_KEY, SMTP, PORT…
+   ```
+
+   > Ako preskočite ovaj korak, aplikacija radi sa podrazumevanim podešavanjima
+   > (port 8000, valuta RSD, bez SMTP-a).
+
+4. **Inicijalizacija baze podataka:**
+
+   ```powershell
+   python init_db.py --demo      # kreira tabele + demo podatke
+   # ili:
+   python init_db.py             # prazna baza (prvi nalog = administrator)
+   ```
+
+5. **Pokretanje servera:**
+
+   ```powershell
+   python serve.py               # produkcioni (Waitress) — http://127.0.0.1:8000
+   # ili:
+   python run.py                 # debug režim (auto-reload)
+   ```
+
+6. Otvorite **<http://127.0.0.1:8000>** u pregledaču.
+
+### Demo nalozi
+
+| Uloga         | Korisnik | Lozinka     |
+|---------------|----------|-------------|
+| Administrator | `admin`  | `admin123`  |
+| Radnik        | `radnik` | `radnik123` |
+
+> Bez `--demo` baza je prazna — prvi nalog koji registrujete automatski postaje
+> administrator.
+
+---
+
+## Instalacija na Raspberry Pi (3B+ / 4B / 5 / Zero 2W)
+
+### Opcija A — jednom komandom (preporučeno)
+
+Instaler u `deploy/` radi sve automatski: sistemske pakete, korisnika, venv,
+bazu, systemd servis, zram swap (ako je RAM ≤ 1 GB) i dnevni backup.
+
+```bash
+# 1. Preuzmite projekat na Pi:
+git clone <repo-url>  ~/garagepro
+cd ~/garagepro
+
+# 2. Preimenujte i pokrenite instaler:
+mv deploy/install-garagepro.txt deploy/install-garagepro.sh
+chmod +x deploy/install-garagepro.sh
+sudo bash deploy/install-garagepro.sh
 ```
 
-Otvorite <http://127.0.0.1:8000>.
+Po završetku, aplikacija je dostupna na **`http://<IP-adresa-Pi>:8000`**.
 
-Demo nalozi (kada koristite `--demo`):
+### Opcija B — ručno, korak po korak
 
-| Uloga | Korisnik | Lozinka |
-|-------|----------|---------|
-| Administrator | `admin` | `admin123` |
-| Radnik | `radnik` | `radnik123` |
+1. **Sistemske zavisnosti:**
 
-Bez `--demo` baza je prazna — prvi nalog koji registrujete postaje administrator.
+   ```bash
+   sudo apt update
+   sudo apt install -y python3 python3-venv python3-pip python3-dev \
+       tesseract-ocr tesseract-ocr-srp libjpeg-dev libopenjp2-7 \
+       libffi-dev zlib1g-dev libfreetype6-dev sqlite3
+   ```
+
+2. **Preuzimanje projekta:**
+
+   ```bash
+   git clone <repo-url>  ~/garagepro
+   cd ~/garagepro
+   ```
+
+3. **Virtualno okruženje:**
+
+   ```bash
+   python3 -m venv .venv
+   .venv/bin/pip install --upgrade pip
+   .venv/bin/pip install -r requirements.txt
+   ```
+
+4. **Konfiguracija:**
+
+   ```bash
+   cp .env.example .env
+   nano .env                    # podesite SECRET_KEY, SMTP, ENABLE_SCHEDULER…
+   ```
+
+   > Za automatske žurnale (dnevni u 20:00, nedeljni nedeljom, mesečni poslednjeg
+   > dana) postavite `ENABLE_SCHEDULER=true`.
+
+5. **Inicijalizacija baze:**
+
+   ```bash
+   .venv/bin/python init_db.py --demo      # ili bez --demo za praznu bazu
+   ```
+
+6. **Pokretanje (ručno, za test):**
+
+   ```bash
+   .venv/bin/python serve.py
+   ```
+
+7. **Instalacija kao systemd servis (autostart + restart):**
+
+   ```bash
+   # Kopirajte priloženi fajl:
+   sudo cp deploy/garagepro-service.txt /etc/systemd/system/garagepro.service
+
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now garagepro
+   ```
+
+   Korisne komande:
+
+   ```bash
+   sudo systemctl status garagepro       # provera statusa
+   sudo systemctl restart garagepro      # restart
+   sudo journalctl -u garagepro -f       # logovi u realnom vremenu
+   ```
+
+### Deinstalacija
+
+```bash
+mv deploy/uninstall-garagepro.txt deploy/uninstall-garagepro.sh
+chmod +x deploy/uninstall-garagepro.sh
+sudo bash deploy/uninstall-garagepro.sh
+```
 
 ---
 
 ## Konfiguracija (`.env`)
 
-Kopirajte `.env.example` u `.env` i podesite vrednosti (tajni ključ, SMTP za
-e-mail, valutu, port…). SMTP je potreban samo za slanje žurnala na e-mail.
+Kopirajte `.env.example` u `.env` i podesite vrednosti. Podrazumevane vrednosti
+rade bez izmena za lokalno testiranje.
 
----
-
-## Postavljanje na Raspberry Pi Zero 2W
-
-```bash
-sudo apt update && sudo apt install -y python3-venv python3-pip
-git clone <repo>  /home/pi/carservice        # ili prekopirajte fajlove
-cd /home/pi/carservice
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cp .env.example .env && nano .env            # podesite SECRET_KEY, SMTP…
-.venv/bin/python init_db.py                  # prazna baza (registrujte admina)
-
-# systemd servis (autostart + restart):
-sudo cp deploy/carservice.service /etc/systemd/system/carservice.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now carservice
-```
-
-Aplikacija sluša na portu `8000`. Pristupite sa druge mašine u mreži preko
-`http://<IP-adresa-Pi>:8000`.
-
-Za automatsko slanje žurnala (dnevni u 20:00, nedeljni nedeljom, mesečni
-poslednjeg dana) postavite `ENABLE_SCHEDULER=true` (već je uključeno u
-priloženom systemd fajlu).
+| Promenljiva         | Podrazumevano              | Opis                                      |
+|---------------------|----------------------------|--------------------------------------------|
+| `SECRET_KEY`        | `promeni-me-u-produkciji`  | Tajni ključ (obavezno promeniti u produkciji) |
+| `PORT`              | `8000`                     | Port servera                               |
+| `CURRENCY`          | `RSD`                      | Valuta za prikaz cena                      |
+| `ENABLE_SCHEDULER`  | `false`                    | Automatsko slanje žurnala                  |
+| `SMTP_HOST`         | *(prazno)*                 | SMTP server za e-mail žurnale              |
+| `SMTP_PORT`         | `587`                      | SMTP port                                  |
+| `SMTP_USER`         | *(prazno)*                 | SMTP korisnik                              |
+| `SMTP_PASSWORD`     | *(prazno)*                 | SMTP lozinka                               |
+| `ADMIN_EMAIL`       | *(prazno)*                 | E-mail administratora (zbirni žurnali)     |
+| `BACKUP_KEEP`       | `14`                       | Koliko backup fajlova čuvati               |
+| `SECURE_COOKIES`    | `false`                    | `true` ako koristite HTTPS                 |
+| `TRUST_PROXY`       | `false`                    | `true` ako ste iza nginx reverse proxy-ja  |
 
 ---
 

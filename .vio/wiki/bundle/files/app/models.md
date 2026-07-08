@@ -1,8 +1,8 @@
 ---
 type: File
 title: Data Models
-description: SQLAlchemy models (User, Company, Car, Service, Part) with relationships
-  and derived pricing/profit properties.
+description: SQLAlchemy models (Shop, User, Company, Car, Service, Part) with relationships,
+  three-role system (moderator/admin/worker), service types, and derived pricing/profit properties.
 tags:
 - sqlalchemy
 - models
@@ -15,12 +15,20 @@ resource: file:///D:/Service/app/models.py
 
 # Data Models
 
-`app/models.py` defines the five SQLAlchemy models that form the application's data layer. All tables live in a single SQLite database (`instance/carservice.db`).
+`app/models.py` defines the six SQLAlchemy models that form the application's data layer. All tables live in a single SQLite database (`instance/carservice.db`).
 
 ## Model Relationships
 
 ```mermaid
 classDiagram
+    class Shop {
+        +int id
+        +str name
+        +str address
+        +str contact
+        +str logo_path
+        +bool is_active
+    }
     class User {
         +int id
         +str username
@@ -28,9 +36,12 @@ classDiagram
         +str full_name
         +str role
         +bool active
+        +int shop_id
         +set_password()
         +check_password()
+        +is_moderator bool
         +is_admin bool
+        +is_owner bool
     }
     class Company {
         +int id
@@ -45,12 +56,15 @@ classDiagram
         +str owner_name
         +str brand
         +int mileage
+        +int shop_id
         +description() str
     }
     class Service {
         +int id
         +date date
+        +str service_type
         +float labor_price
+        +int shop_id
         +total_full() float
         +total_profit() float
     }
@@ -63,20 +77,31 @@ classDiagram
         +line_full() float
         +line_profit() float
     }
+    Shop "1" --> "*" User : has
+    Shop "1" --> "*" Car : has
     User "1" --> "*" Service : worker
     Car "1" --> "*" Service : has
     Service "1" --> "*" Part : contains
 ```
 
+## Shop
+
+Represents a service shop / tenant. Moderators create shops; each admin (owner) is assigned to one. Fields: `name`, `address`, `contact`, `logo_path`, `is_active`, `created_at`. Has one-to-many relationships with `User` and `Car`.
+
 ## User
 
-Extends Flask-Login's `UserMixin`. Two roles defined by constants:
-- `ROLE_ADMIN = "admin"` — can see all services, manage users, access setup/backup.
+Extends Flask-Login's `UserMixin`. Three roles defined by constants:
+- `ROLE_MODERATOR = "moderator"` — system-level super-admin, sees all shops, manages tenants.
+- `ROLE_ADMIN = "admin"` — shop owner, sees all services within their shop, manages users.
 - `ROLE_WORKER = "radnik"` — sees only their own services.
+
+Each user has a `shop_id` FK linking to their assigned shop (nullable for moderators).
 
 Key methods:
 - `set_password(password)` / `check_password(password)` — bcrypt-style hashing via Werkzeug.
-- `is_admin` property — checks `self.role == ROLE_ADMIN`.
+- `is_moderator` property — checks `self.role == ROLE_MODERATOR`.
+- `is_admin` property — `True` if role is `ROLE_ADMIN` or `ROLE_MODERATOR`.
+- `is_owner` property — `True` only for `ROLE_ADMIN` (shop owner specifically).
 - `is_active` property — maps to the `active` column (Flask-Login interface).
 
 ## Company
@@ -93,7 +118,19 @@ Fuel types are defined as a constant list: `benzin`, `dizel`, `ev`, `benzin/plin
 
 ## Service
 
-Links a `Car` to a `worker` (User) for a specific date. Stores labor price/description and odometer reading. Parts are a cascade-delete-orphan relationship.
+Links a `Car` to a `worker` (User) for a specific date. Stores labor price/description, odometer reading, and `shop_id` for multi-tenant scoping. Parts are a cascade-delete-orphan relationship.
+
+### Service types
+
+Each service has a `service_type` field (indexed) with one of:
+
+| Constant | Label |
+|----------|-------|
+| `SERVICE_TYPE_POPRAVKE` (`"popravke"`) | Popravke (repairs) |
+| `SERVICE_TYPE_VULKANIZERSKI` (`"vulkanizerski"`) | Vulkanizerski radovi (tire work) |
+| `SERVICE_TYPE_MALI_SERVIS` (`"mali_servis"`) | Mali servis (oil change) |
+
+Service types are used for filtering and analytics breakdowns across the dashboard, reports, and moderator panel.
 
 ### Derived price properties
 
@@ -127,12 +164,13 @@ Line totals multiply by `quantity`:
 # Citations
 - app/models.py:1
 - app/models.py:9
-- app/models.py:15
-- app/models.py:30
-- app/models.py:48
-- app/models.py:59
-- app/models.py:89
-- app/models.py:104
-- app/models.py:112
-- app/models.py:131
-- app/models.py:141
+- app/models.py:13
+- app/models.py:16
+- app/models.py:29
+- app/models.py:46
+- app/models.py:87
+- app/models.py:101
+- app/models.py:120
+- app/models.py:135
+- app/models.py:165
+- app/models.py:181

@@ -42,7 +42,8 @@ flowchart TD
 | `/service/<id>` | GET | `detail(id)` | View service details |
 | `/service/<id>/edit` | GET/POST | `edit(id)` | Edit service |
 | `/service/<id>/delete` | POST | `delete(id)` | Delete service |
-| `/services` | GET | `list_services()` | List all services (filterable by plate) |
+| `/services` | GET | `list_services()` | List all services (filterable by plate and service type) |
+| `/service/parse-invoice` | POST | `parse_invoice_upload()` | OCR an invoice image/PDF and return parsed parts as JSON |
 
 ## Access control
 
@@ -65,14 +66,28 @@ This approach keeps the form simple (add/remove rows dynamically via [Frontend J
 
 Called after every create, edit, and delete.
 
+## Service types
+
+Each service is assigned a `service_type` from the `SERVICE_TYPES` list (popravke, vulkanizerski, mali servis). The type is set on create/edit and defaults to `SERVICE_TYPE_POPRAVKE`. The service list page allows filtering by type, and types are used for analytics breakdowns.
+
+## Invoice OCR (`/service/parse-invoice`)
+
+The endpoint accepts an uploaded invoice image (JPEG, PNG, BMP, WebP, TIFF) or PDF, runs Tesseract OCR via `app/invoice_parser.py`, and returns parsed parts as JSON. The parser:
+- Converts PDFs to images via `pypdfium2`.
+- Extracts parts from the standard Serbian auto-parts invoice format (catalog number, description, quantity, unit, retail price, discounted price).
+- Handles OCR artifacts in number parsing (mangled decimals, missing commas).
+- Cross-references multiple pages to merge names from one page with discount prices from another.
+
 ## Form helpers
 
-- `_apply_service_form(service, form)` — parses date, mileage, labor price, and labor description from the POST data.
+- `_apply_service_form(service, form)` — parses date, mileage, labor price, labor description, and service type from the POST data.
 - `_to_int(value)` / `_to_float(value)` — tolerant parsers that strip spaces and handle comma/dot decimal separators (Serbian locale).
 
 ## Connections
 
-- Uses [Data Models](models.md) — `Car`, `Service`, `Part`
+- Uses [Data Models](models.md) — `Car`, `Service`, `Part`, `SERVICE_TYPES`
+- Invoice OCR via `app/invoice_parser.py` (Tesseract + pypdfium2)
+- Multi-tenant scoping via `scoped_query()` from `security.py`
 - Plate normalization mirrors [Car Management](cars.md)
 - Dynamic form powered by [Frontend & Static Assets](../modules/app/static/js.md) (`service_form.js`)
 - Results feed into [Reports & Analytics](reports.md) and [Printing & PDF](printing.md)

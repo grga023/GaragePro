@@ -50,7 +50,7 @@ Global CSRF protection via `CSRFProtect` (Flask-WTF):
 
 Implemented in `app/auth.py` using an in-memory dictionary (`_login_failures`) keyed by client IP:
 
-- After `LOGIN_MAX_ATTEMPTS` (default 8) failed attempts within `LOGIN_LOCKOUT_MINUTES` (default 10), the IP is temporarily blocked
+- After `LOGIN_MAX_ATTEMPTS` (default 5) failed attempts within `LOGIN_LOCKOUT_MINUTES` (default 15), the IP is temporarily blocked
 - Successful login clears the failure history for that IP
 - Resets on server restart (appropriate for a single-process Waitress deployment)
 
@@ -64,19 +64,19 @@ Flask-Login's decorator, applied to all routes except `/login` and `/register`. 
 
 ### `@admin_required`
 
-Custom decorator in `app/security.py`:
+Custom decorator in `app/security.py` — allows both moderators and shop owners (admin role). Applied to: company setup, user management.
 
-```python
-def admin_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403)
-        return view(*args, **kwargs)
-    return wrapped
-```
+### `@moderator_required`
 
-Applied to: company setup, user management, backup management.
+Only system moderators. Applied to: backup management, moderator panel (shop CRUD, user assignment).
+
+### `@owner_required`
+
+Shop owners (admin) or moderators. Applied where shop-owner-level access is needed.
+
+### `scoped_query(model)`
+
+Returns a query filtered to the current user's shop. Moderators see everything (no filter); shop owners and workers see only their shop's data. Used throughout dashboard, cars, services, and reports.
 
 ### Row-Level Access
 

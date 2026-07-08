@@ -15,16 +15,17 @@ resource: file:///D:/Service/app/auth.py
 
 # Authentication & Users
 
-`app/auth.py` implements the `auth_bp` blueprint handling login, logout, self-registration, and admin-only user management. Combined with `app/security.py`, it enforces a two-role access model: **admin** and **radnik** (worker).
+`app/auth.py` implements the `auth_bp` blueprint handling login, logout, self-registration, and admin-only user management. Combined with `app/security.py`, it enforces a three-role access model: **moderator**, **admin** (shop owner), and **radnik** (worker).
 
 ## Role system
 
 | Role | Constant | Capabilities |
 |------|----------|-------------|
-| Administrator | `ROLE_ADMIN` (`"admin"`) | Sees all services/revenue, manages users, accesses setup + backup |
+| Moderator | `ROLE_MODERATOR` (`"moderator"`) | System super-admin, manages all shops and tenants, sees everything |
+| Owner (Admin) | `ROLE_ADMIN` (`"admin"`) | Shop owner, sees all services/revenue within their shop, manages users |
 | Worker | `ROLE_WORKER` (`"radnik"`) | Sees only their own services and revenue |
 
-The **first registered user** automatically becomes admin (`User.query.count() == 0` check). All subsequent self-registrations are workers.
+The **first registered user** automatically becomes **moderator** (`User.query.count() == 0` check). All subsequent self-registrations are workers.
 
 ## Endpoints
 
@@ -62,15 +63,16 @@ flowchart TD
 
 Self-registration enforces:
 - All fields required (full name, username, email).
-- Password minimum 6 characters, must match confirmation.
+- Password minimum 8 characters, must contain both letters and digits, must match confirmation.
 - Unique username and email.
 
-Admin user creation (`create_user`) follows the same rules but allows the admin to set the role directly.
+Admin user creation (`create_user`) follows the same rules but allows the admin to set the role directly. Admins can create workers and other admins; only moderators can assign the moderator role. New users created by admins are automatically assigned to the admin's `shop_id`.
 
 ## Connections
 
-- Uses [Data Models](models.md) — `User`, `ROLE_ADMIN`, `ROLE_WORKER`
-- `admin_required` decorator used by [Dashboard & Setup](main.md), [Backup System](backup.md), [Reports & Analytics](reports.md)
+- Uses [Data Models](models.md) — `User`, `ROLE_MODERATOR`, `ROLE_ADMIN`, `ROLE_WORKER`
+- `admin_required` decorator used by [Dashboard & Setup](main.md), [Reports & Analytics](reports.md)
+- `moderator_required` decorator used by [Backup System](backup.md), [Moderator Panel](../../architecture/moderator.md)
 - Login throttle settings from [Configuration](../architecture/configuration.md) (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCKOUT_MINUTES`)
 - Part of the [Security Architecture](../architecture/security.md)
 

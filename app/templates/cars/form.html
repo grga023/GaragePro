@@ -25,15 +25,24 @@
 
           <div class="col-md-3">
             <label class="form-label">Marka</label>
-            <input type="text" name="brand" class="form-control" placeholder="BMW" value="{{ car.brand if car else '' }}">
+            <input type="text" name="brand" id="brandInput" class="form-control" list="brandList"
+                   placeholder="Izaberite ili ukucajte" autocomplete="off"
+                   value="{{ car.brand if car else '' }}">
+            <datalist id="brandList"></datalist>
           </div>
           <div class="col-md-3">
             <label class="form-label">Model</label>
-            <input type="text" name="model" class="form-control" placeholder="320" value="{{ car.model if car else '' }}">
+            <input type="text" name="model" id="modelInput" class="form-control" list="modelList"
+                   placeholder="Prvo izaberite marku" autocomplete="off"
+                   value="{{ car.model if car else '' }}">
+            <datalist id="modelList"></datalist>
           </div>
           <div class="col-md-2">
             <label class="form-label">Motor</label>
-            <input type="text" name="engine" class="form-control" placeholder="2.0" value="{{ car.engine if car else '' }}">
+            <input type="text" name="engine" id="engineInput" class="form-control" list="engineList"
+                   placeholder="Izaberite" autocomplete="off"
+                   value="{{ car.engine if car else '' }}">
+            <datalist id="engineList"></datalist>
           </div>
           <div class="col-md-2">
             <label class="form-label">Gorivo</label>
@@ -66,4 +75,95 @@
     </div></div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  "use strict";
+  var CAR_DATA = null;
+  var brandInput  = document.getElementById("brandInput");
+  var modelInput  = document.getElementById("modelInput");
+  var engineInput = document.getElementById("engineInput");
+  var brandList   = document.getElementById("brandList");
+  var modelList   = document.getElementById("modelList");
+  var engineList  = document.getElementById("engineList");
+  var fuelSelect  = document.querySelector('select[name="fuel_type"]');
+
+  function fillDatalist(dl, items) {
+    dl.innerHTML = "";
+    items.forEach(function(v) {
+      var o = document.createElement("option");
+      o.value = v;
+      dl.appendChild(o);
+    });
+  }
+
+  function guessFuel(engine) {
+    var e = (engine || "").toLowerCase();
+    if (/\bev\b|electric|recharge/i.test(e)) return "ev";
+    if (/tdi|tdci|cdti|crdi|bluehdi|multijet|jtdm|di-d|d-4d|dci|ecoblue|skyactiv-d/i.test(e)) return "dizel";
+    if (/phev|e-tech|ehybrid|e-hybrid|4xe|gte/i.test(e)) return "benzin/plin";
+    if (/hybrid|e:hev|e-boxer|e-power|mhev/i.test(e)) return "hibrid";
+    if (/tsi|tfsi|vtec|ecoboost|turbo|tce|puretech|mpi|sce|skyactiv-g|gdi|boosterjet|firefly|twinair/i.test(e)) return "benzin";
+    return "";
+  }
+
+  function populateBrands() {
+    if (!CAR_DATA) return;
+    fillDatalist(brandList, Object.keys(CAR_DATA).sort());
+  }
+
+  function onBrandChange() {
+    var brand = brandInput.value.trim();
+    modelList.innerHTML = "";
+    engineList.innerHTML = "";
+    if (!CAR_DATA || !CAR_DATA[brand]) {
+      modelInput.placeholder = "Ukucajte model";
+      return;
+    }
+    modelInput.placeholder = "Izaberite model";
+    fillDatalist(modelList, Object.keys(CAR_DATA[brand]).sort());
+  }
+
+  function onModelChange() {
+    var brand = brandInput.value.trim();
+    var model = modelInput.value.trim();
+    engineList.innerHTML = "";
+    if (!CAR_DATA || !CAR_DATA[brand] || !CAR_DATA[brand][model]) {
+      engineInput.placeholder = "Ukucajte motor";
+      return;
+    }
+    engineInput.placeholder = "Izaberite motor";
+    fillDatalist(engineList, CAR_DATA[brand][model]);
+  }
+
+  function onEngineChange() {
+    var eng = engineInput.value.trim();
+    if (eng && fuelSelect) {
+      var guess = guessFuel(eng);
+      if (guess && !fuelSelect.value) {
+        fuelSelect.value = guess;
+      }
+    }
+  }
+
+  brandInput.addEventListener("input", onBrandChange);
+  brandInput.addEventListener("change", onBrandChange);
+  modelInput.addEventListener("input", onModelChange);
+  modelInput.addEventListener("change", onModelChange);
+  engineInput.addEventListener("input", onEngineChange);
+  engineInput.addEventListener("change", onEngineChange);
+
+  fetch("{{ url_for('static', filename='data/car_data.json') }}")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      CAR_DATA = data;
+      populateBrands();
+      if (brandInput.value) onBrandChange();
+      if (modelInput.value) onModelChange();
+    })
+    .catch(function(e) { console.warn("Car data not loaded:", e); });
+})();
+</script>
 {% endblock %}

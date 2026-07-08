@@ -16,7 +16,7 @@ from flask import (
 )
 from flask_login import login_required
 
-from .security import admin_required
+from .security import moderator_required
 
 backup_bp = Blueprint("backup", __name__)
 
@@ -109,7 +109,7 @@ def list_backups():
 # ---------------------------------------------------------------------------
 @backup_bp.route("/backup")
 @login_required
-@admin_required
+@moderator_required
 def index():
     return render_template("backup.html", backups=list_backups(),
                            keep=current_app.config.get("BACKUP_KEEP", 14))
@@ -117,7 +117,7 @@ def index():
 
 @backup_bp.route("/backup/create", methods=["POST"])
 @login_required
-@admin_required
+@moderator_required
 def create():
     try:
         path = create_backup()
@@ -129,7 +129,7 @@ def create():
 
 @backup_bp.route("/backup/download/<name>")
 @login_required
-@admin_required
+@moderator_required
 def download(name):
     if not _NAME_RE.match(name):
         abort(404)

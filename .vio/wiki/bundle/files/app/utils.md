@@ -62,7 +62,7 @@ Used by [Dashboard & Setup](main.md) (today/month stats) and [Reports & Analytic
 |----------|-------|-------|
 | `ALLOWED_IMAGE_EXT` | `{"png", "jpg", "jpeg", "gif", "webp", "bmp"}` | Image upload validation |
 | `FUEL_LABELS` | `{"benzin": "Benzin", ...}` | UI display labels for fuel types |
-| `ROLE_LABELS` | `{"admin": "Administrator", "radnik": "Radnik"}` | UI display labels for roles |
+| `ROLE_LABELS` | `{"moderator": "Moderator", "admin": "Vlasnik servisa", "radnik": "Radnik"}` | UI display labels for roles |
 | `PERIOD_LABELS` | `{"day": "Dnevni", "week": "Nedeljni", "month": "Mesečni"}` | Journal period labels |
 | `SR_MONTHS` | 13-element list of Serbian month names | Date formatting |
 

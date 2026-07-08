@@ -1,8 +1,9 @@
 """Service records: plate-first flow, parts, labor, listing."""
+import os
 from datetime import datetime, date
 
 from flask import (
-    Blueprint, render_template, redirect, url_for, request, flash, abort,
+    Blueprint, render_template, redirect, url_for, request, flash, abort, jsonify,
 )
 from flask_login import login_required, current_user
 
@@ -215,3 +216,30 @@ def _to_float(value):
         return float(str(value).replace(" ", "").replace(",", "."))
     except (TypeError, ValueError):
         return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Invoice OCR upload
+# ---------------------------------------------------------------------------
+@services_bp.route("/service/parse-invoice", methods=["POST"])
+@login_required
+def parse_invoice_upload():
+    """Accept an invoice image/PDF, OCR it, return parsed parts as JSON."""
+    f = request.files.get("invoice")
+    if not f or not f.filename:
+        return jsonify({"error": "Nije priložena faktura."}), 400
+
+    allowed = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.tif'}
+    ext = os.path.splitext(f.filename.lower())[1]
+    if ext not in allowed:
+        return jsonify({"error": f"Nepodržan format: {ext}"}), 400
+
+    try:
+        from .invoice_parser import parse_invoice
+        parts = parse_invoice(f)
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Greška pri obradi: {exc}"}), 500
+
+    return jsonify({"parts": parts, "count": len(parts)})

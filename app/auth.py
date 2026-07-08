@@ -135,8 +135,10 @@ def register():
 @login_required
 @admin_required
 def users():
-    all_users = User.query.order_by(User.created_at).all()
-    return render_template("auth/users.html", users=all_users)
+    q = User.query.order_by(User.created_at)
+    if not current_user.is_moderator:
+        q = q.filter(User.role != ROLE_MODERATOR)
+    return render_template("auth/users.html", users=q.all())
 
 
 @auth_bp.route("/users/new", methods=["POST"])

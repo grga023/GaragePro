@@ -11,8 +11,11 @@
       } catch (e) {}
     })();
   </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Auto Servis{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>{% block title %}GaragePro{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -21,7 +24,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
-      🔧 {{ company.name if company and company.name else 'Auto Servis' }}
+      🔧 {{ company.name if company and company.name else 'GaragePro' }}
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
@@ -56,7 +59,6 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.top_customers') }}">🚗 Top kupci</a></li>
           {% if current_user.is_admin %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.users') }}">Korisnici</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('backup.index') }}">Kopije</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.setup') }}">⚙️ Podešavanja</a></li>
           {% endif %}
         {% endif %}
@@ -81,7 +83,7 @@
 </nav>
 {% endif %}
 
-<div class="container-fluid px-2 px-md-4 mt-3">
+<div class="container-fluid px-2 px-md-4 mt-2 mt-md-3">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
       <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">

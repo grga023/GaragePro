@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <title>Štampa — {{ car.plate }}</title>
   <style>
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; }
-    body { font-family: Arial, "Segoe UI", sans-serif; color:#000; font-size: 12px; margin: 0; }
+    body { font-family: Arial, "Segoe UI", sans-serif; color:#000; font-size: 11px; margin: 0; }
 
     .toolbar { background:#222; color:#fff; padding:10px 16px; display:flex; gap:10px; align-items:center; }
     .toolbar button, .toolbar a { font-size:14px; padding:6px 14px; cursor:pointer; border:0; border-radius:4px; text-decoration:none; }
     .btn-print { background:#0d6efd; color:#fff; }
     .btn-close { background:#6c757d; color:#fff; }
 
-    .sheet { padding: 6mm 4mm; max-width: 210mm; margin: 0 auto; }
+    .sheet { padding: 4mm 2mm; max-width: 210mm; margin: 0 auto; }
 
     header.doc-head {
       display:flex; justify-content:space-between; align-items:flex-start;
@@ -37,10 +37,12 @@
     .service-block { margin-bottom:14px; page-break-inside: avoid; }
     .svc-date { font-size:13px; margin:8px 0 4px; border-bottom:1px solid #999; padding-bottom:2px; }
 
-    table.parts { width:100%; border-collapse:collapse; }
-    table.parts th, table.parts td { border:1px solid #333; padding:4px 6px; }
+    table.parts { width:100%; border-collapse:collapse; table-layout:fixed; }
+    table.parts th, table.parts td { border:1px solid #333; padding:3px 4px; overflow:hidden; text-overflow:ellipsis; }
     table.parts th { background:#eee; text-align:left; }
     table.parts td.num, table.parts th.num { text-align:right; white-space:nowrap; }
+    table.parts th:first-child, table.parts td:first-child { width:auto; }
+    table.parts th.num, table.parts td.num { width:14%; }
     tfoot td { font-weight:bold; }
 
     .totals { margin-top:6px; width:100%; }
@@ -53,8 +55,11 @@
 
     @media print {
       .toolbar { display:none !important; }
-      .sheet { padding:0; }
+      .sheet { padding:0; max-width:100%; }
+      body { font-size:11px; }
+      table.parts th, table.parts td { padding:2px 3px; font-size:10px; }
       .service-block { page-break-inside: avoid; }
+      .totals td { font-size:11px; }
     }
   </style>
 </head>
@@ -78,7 +83,7 @@
       </div>
       <div class="company-box">
         {% if company %}
-          <div class="cname">{{ company.name or 'Auto Servis' }}</div>
+          <div class="cname">{{ company.name or 'GaragePro' }}</div>
           {% if company.address %}<div>{{ company.address }}</div>{% endif %}
           {% if company.contact %}<div>{{ company.contact }}</div>{% endif %}
         {% endif %}

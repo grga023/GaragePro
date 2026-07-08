@@ -8,11 +8,11 @@
     <span class="badge badge-stype-{{ service.service_type }}">{{ SERVICE_TYPE_LABELS.get(service.service_type, service.service_type) }}</span>
     <span class="text-muted">{{ car.description }} — {{ car.owner_name }}</span>
   </div>
-  <div class="btn-group flex-wrap">
+  <div class="detail-actions">
     <button onclick="inlinePrint('{{ url_for('printing.service', service_id=service.id, mode='customer') }}')" class="btn btn-outline-dark btn-sm">🖨️ Kupac</button>
     <button onclick="inlinePrint('{{ url_for('printing.service', service_id=service.id, mode='owner') }}')" class="btn btn-outline-dark btn-sm">🖨️ Vlasnik</button>
-    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='customer') }}" class="btn btn-outline-danger btn-sm">📄 PDF kupac</a>
-    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='owner') }}" class="btn btn-outline-danger btn-sm">📄 PDF vlasnik</a>
+    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='customer') }}" class="btn btn-outline-danger btn-sm">📄 PDF</a>
+    <a href="{{ url_for('printing.service_pdf', service_id=service.id, mode='owner') }}" class="btn btn-outline-danger btn-sm">📄 PDF vl.</a>
     <a href="{{ url_for('services.edit', service_id=service.id) }}" class="btn btn-outline-primary btn-sm">✏️ Izmeni</a>
   </div>
 </div>
@@ -26,10 +26,10 @@
           <thead class="table-light">
             <tr>
               <th>Naziv</th><th class="money">Kol.</th>
-              <th class="money">Cena (bez pop.)</th>
-              <th class="money">Cena (sa pop.)</th>
+              <th class="money d-mobile-none">Cena</th>
+              <th class="money d-mobile-none">Sa pop.</th>
               <th class="money">Ukupno</th>
-              <th class="money">Profit</th>
+              <th class="money d-mobile-none">Profit</th>
             </tr>
           </thead>
           <tbody>
@@ -37,10 +37,10 @@
             <tr>
               <td>{{ p.name }}</td>
               <td class="money">{{ p.quantity }}</td>
-              <td class="money">{{ p.price | currency }}</td>
-              <td class="money">{{ p.price_with_discount | currency }}</td>
+              <td class="money d-mobile-none">{{ p.price | currency }}</td>
+              <td class="money d-mobile-none">{{ p.price_with_discount | currency }}</td>
               <td class="money">{{ p.line_full | currency }}</td>
-              <td class="money text-success">{{ p.line_profit | currency }}</td>
+              <td class="money text-success d-mobile-none">{{ p.line_profit | currency }}</td>
             </tr>
           {% else %}
             <tr><td colspan="6" class="text-center text-muted py-3">Bez delova.</td></tr>

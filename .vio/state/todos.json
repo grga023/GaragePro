@@ -1,24 +1,42 @@
 {
   "todos": [
     {
-      "id": "td_c155d34d",
-      "content": "1. Print without new page — use iframe + window.print() on same page",
+      "id": "td_8d2b0e4b",
+      "content": "Choose a platform name and rebrand the app",
       "status": "completed",
       "priority": "medium"
     },
     {
-      "id": "td_9a7a324c",
-      "content": "2. Workers scoped to services — only see services they're assigned to, not other services/data",
+      "id": "td_79b9550a",
+      "content": "Create install.sh — one-command Pi installer",
       "status": "completed",
       "priority": "medium"
     },
     {
-      "id": "td_99577757",
-      "content": "3. Login security — remember me checkbox, CSRF hardening, better password requirements",
+      "id": "td_ae07f373",
+      "content": "Create systemd service unit file",
+      "status": "completed",
+      "priority": "medium"
+    },
+    {
+      "id": "td_ebd31e9c",
+      "content": "Create uninstall.sh for clean removal",
+      "status": "completed",
+      "priority": "medium"
+    },
+    {
+      "id": "td_f064e5bf",
+      "content": "Update base template, config, and CSS with new branding",
+      "status": "completed",
+      "priority": "medium"
+    },
+    {
+      "id": "td_7bd0b371",
+      "content": "Update wiki with new platform name and deployment docs",
       "status": "completed",
       "priority": "medium"
     }
   ],
-  "updated_at": 1783374412.9729133,
+  "updated_at": 1783421777.535451,
   "version": 1
 }

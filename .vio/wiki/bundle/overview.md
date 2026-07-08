@@ -1,7 +1,7 @@
 ---
 type: Repo
 title: Overview
-description: Auto Servis — a Flask + SQLite car-service-shop management application
+description: GaragePro — a Flask + SQLite car-service-shop management platform
   targeting Raspberry Pi and Windows, with Serbian (Latin) UI.
 tags:
 - flask
@@ -22,14 +22,17 @@ The interface language is **Serbian (Latin script)**.
 
 ## What it does
 
-- **Two account types**: administrator and worker (radnik). The first registered user automatically becomes admin.
+- **Three user roles**: moderator (system super-admin, manages all shops), admin/owner (shop-level), and worker (radnik). The first registered user automatically becomes moderator.
+- **Multi-tenant**: moderators create shops (tenants) and assign owners/workers. Data is scoped per shop.
 - **Vehicle registry** by license plate, tracking owner, mileage, brand/model/engine/fuel/year, and photo.
-- **Service records** with a parts table (retail vs. cost price), labor description + price, date, and mileage update.
+- **Service records** with a parts table (retail vs. cost price), labor description + price, date, service type (popravke/vulkanizerski/mali servis), and mileage update.
+- **Invoice OCR**: upload a supplier invoice (image or PDF) and auto-parse parts via Tesseract.
 - **Plate-first workflow**: enter a plate → if the car exists, create a service; if not, register it first, then proceed.
 - **Printing**: customer copy (no labor, retail prices only) and owner copy (full breakdown with profit). Available as browser print or PDF download.
 - **Journals**: daily / weekly / monthly reports by worker or shop-wide, with e-mail delivery via SMTP.
-- **Analytics**: profit charts, parts price comparison (retail vs. cost vs. margin), revenue structure — powered by Chart.js.
-- **Backups**: consistent SQLite online-backup zipped with uploaded media, with admin UI and automatic nightly scheduling.
+- **Analytics**: profit charts, parts price comparison (retail vs. cost vs. margin), revenue structure, service type breakdown — powered by Chart.js. CSV export and top customers report.
+- **Moderator panel**: cross-shop dashboard with performance stats, worker rankings, shop comparison, trend charts, and CSV export.
+- **Backups**: consistent SQLite online-backup zipped with uploaded media, with moderator UI and automatic nightly scheduling.
 
 ## Tech stack
 
@@ -46,7 +49,7 @@ The interface language is **Serbian (Latin script)**.
 
 ## Architecture
 
-The application follows the **Flask app-factory pattern**. `create_app()` in `app/__init__.py` initialises extensions, registers seven blueprints, sets up Jinja filters, security headers, error handlers, and optionally starts the background scheduler.
+The application follows the **Flask app-factory pattern**. `create_app()` in `app/__init__.py` initialises extensions, registers eight blueprints, sets up Jinja filters, security headers, error handlers, and optionally starts the background scheduler.
 
 ```mermaid
 flowchart TD
@@ -59,20 +62,23 @@ flowchart TD
     AppFactory --> ReportsBP["reports_bp"]
     AppFactory --> PrintBP["print_bp"]
     AppFactory --> BackupBP["backup_bp"]
+    AppFactory --> ModeratorBP["moderator_bp"]
     AuthBP --> DB["SQLite (carservice.db)"]
     MainBP --> DB
     CarsBP --> DB
     ServicesBP --> DB
+    ServicesBP --> OCR["Tesseract OCR"]
     ReportsBP --> DB
     ReportsBP --> SMTP["SMTP (e-mail)"]
     PrintBP --> PDF["xhtml2pdf"]
     BackupBP --> DB
+    ModeratorBP --> DB
 ```
 
 ## Key pages in this wiki
 
 - [Application Factory](modules/app.md) — how the app is wired together
-- [Data Models](files/app/models.md) — User, Company, Car, Service, Part
+- [Data Models](files/app/models.md) — Shop, User, Company, Car, Service, Part
 - [Authentication & Users](files/app/auth.md) — login, roles, throttling
 - [Dashboard & Setup](files/app/main.md) — home page and company config
 - [Car Management](files/app/cars.md) — vehicle CRUD

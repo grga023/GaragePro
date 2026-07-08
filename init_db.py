@@ -4,9 +4,14 @@ Usage:
     python init_db.py            # just create tables
     python init_db.py --demo     # create tables + demo users, cars, services
     python init_db.py --reset     # drop everything first (DANGER)
+
+Note: Bez --demo baza je prazna — prvi nalog koji registrujete
+      automatski postaje MODERATOR.
 """
-import argparse
+import argparse, os, sys
 from datetime import date, timedelta
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
 from app.extensions import db
@@ -124,6 +129,9 @@ def main():
         print("Šema baze je kreirana/ažurirana.")
         if args.demo:
             seed_demo()
+        else:
+            if User.query.count() == 0:
+                print("Baza je prazna — prvi nalog koji registrujete postaje MODERATOR.")
 
 
 if __name__ == "__main__":

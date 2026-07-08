@@ -1,22 +1,41 @@
 /* ══════════════════════════════════════════════════════════════
-   Auto Servis — Mobile-First Responsive Styles
+   GaragePro — iPhone 14+ Optimized Mobile-First Styles
+   iPhone 14:     390×844  @3x  (CSS 390px)
+   iPhone 14 Pro: 393×852  @3x  (CSS 393px)
+   iPhone 14 Plus/Pro Max: 428×926 / 430×932 @3x
+   iPhone 15/16 same as 14 series
    ══════════════════════════════════════════════════════════════ */
 
-:root { --brand: #0d6efd; }
+:root {
+  --brand: #0d6efd;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
 
 /* ── Base ─────────────────────────────────────────────────── */
 [data-bs-theme="light"] body { background: #f4f6f9; }
 [data-bs-theme="dark"]  body { background: #14171a; }
 
-body { font-size: .9rem; }
+body {
+  font-size: .875rem;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS rubber-band scroll fix */
+html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
 
 /* ── Navbar ───────────────────────────────────────────────── */
 .navbar-brand { font-weight: 600; font-size: 1rem; }
 .navbar { padding-top: .4rem; padding-bottom: .4rem; }
 
 /* ── Cards ────────────────────────────────────────────────── */
-.card { box-shadow: 0 1px 3px rgba(0,0,0,.08); border-radius: .5rem; }
-.card-header { font-weight: 600; font-size: .9rem; padding: .5rem .75rem; }
+.card { box-shadow: 0 1px 3px rgba(0,0,0,.08); border-radius: .75rem; overflow: hidden; }
+.card-header { font-weight: 600; font-size: .875rem; padding: .6rem .75rem; }
 
 /* ── Stat cards ───────────────────────────────────────────── */
 .stat-card .display-6 { font-weight: 700; font-size: 1.6rem; }
@@ -24,20 +43,21 @@ body { font-size: .9rem; }
 .stat-card .text-muted { font-size: .75rem; }
 
 /* ── Tables ───────────────────────────────────────────────── */
-.table-sm td, .table-sm th { padding: .3rem .4rem; font-size: .82rem; }
+.table-sm td, .table-sm th { padding: .35rem .4rem; font-size: .82rem; }
 .money { text-align: right; white-space: nowrap; }
 
 /* ── Plate badge ──────────────────────────────────────────── */
 .plate-badge {
-  font-family: "Consolas", "Courier New", monospace;
+  font-family: "SF Mono", "Consolas", "Courier New", monospace;
   font-weight: 700;
   letter-spacing: 1px;
   border: 2px solid #222;
   border-radius: .3rem;
-  padding: .05rem .35rem;
+  padding: .1rem .4rem;
   background: #fff;
   color: #111;
   font-size: .8rem;
+  display: inline-block;
 }
 
 /* ── Service type badges ──────────────────────────────────── */
@@ -51,7 +71,7 @@ body { font-size: .9rem; }
   width: 100%;
   max-height: 220px;
   object-fit: cover;
-  border-radius: .5rem;
+  border-radius: .75rem;
 }
 
 /* ── Plate input ──────────────────────────────────────────── */
@@ -68,61 +88,142 @@ body { font-size: .9rem; }
 .filter-bar .form-control { font-size: .82rem; padding: .3rem .5rem; }
 
 /* ══════════════════════════════════════════════════════════════
-   MOBILE (< 576px)
+   MOBILE — iPhone 14/15/16 series (< 576px, ~390-430px CSS)
+   Apple HIG: 44pt min touch targets, 16px+ for inputs (no zoom)
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 575.98px) {
-  body { font-size: .85rem; }
+  body {
+    font-size: .8125rem;   /* 13px — crisp on 3x Retina */
+    padding-bottom: calc(3.75rem + var(--safe-bottom));
+  }
 
-  .container-fluid { padding-left: .5rem; padding-right: .5rem; }
+  .container-fluid {
+    padding-left: .75rem;
+    padding-right: .75rem;
+  }
 
-  /* Navbar compact */
-  .navbar-brand { font-size: .9rem; }
-  .navbar-nav .nav-link { padding: .4rem .6rem; font-size: .85rem; }
-  .navbar-text { font-size: .78rem; }
-  .collapse.navbar-collapse { max-height: 70vh; overflow-y: auto; }
+  /* ── Navbar: compact, touch-friendly ── */
+  .navbar {
+    padding: .35rem .5rem;
+    padding-top: calc(.35rem + var(--safe-top));
+  }
+  .navbar-brand { font-size: .875rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navbar-toggler { padding: .2rem .4rem; font-size: .9rem; }
+  .navbar-nav .nav-link {
+    padding: .6rem .75rem;   /* 44pt touch target */
+    font-size: .8125rem;
+  }
+  .navbar-text { font-size: .75rem; }
+  .collapse.navbar-collapse { max-height: 65vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-  /* Stat cards: smaller on mobile */
-  .stat-card .display-6 { font-size: 1.3rem; }
-  .stat-card .text-muted { font-size: .68rem; }
-  .stat-card .card-body { padding: .5rem .35rem; }
-  .stat-card .h4 { font-size: 1rem; }
+  /* ── Stat cards: 2×2 grid, snug ── */
+  .stat-card .display-6 { font-size: 1.25rem; line-height: 1.2; }
+  .stat-card .text-muted { font-size: .65rem; }
+  .stat-card .card-body { padding: .5rem .4rem; }
+  .stat-card .h4 { font-size: .95rem; }
+  .stat-card { min-height: 0; }
 
-  /* Cards */
-  .card { border-radius: .4rem; }
-  .card-header { font-size: .82rem; padding: .4rem .6rem; }
-  .card-body { padding: .6rem; }
+  /* ── Cards ── */
+  .card { border-radius: .625rem; margin-bottom: .5rem; }
+  .card-header { font-size: .8rem; padding: .4rem .65rem; }
+  .card-body { padding: .65rem; }
+  .card-footer { padding: .4rem .65rem; }
 
-  /* Tables: compact */
-  .table-sm td, .table-sm th { padding: .25rem .3rem; font-size: .75rem; }
-  .table-responsive { margin: 0 -.6rem; }
+  /* ── Tables: ultra compact for 390px ── */
+  .table-sm td, .table-sm th { padding: .25rem .25rem; font-size: .72rem; }
+  .table-responsive { margin: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Hide less important columns on tiny screens */
+  .table .d-mobile-none { display: none !important; }
 
-  /* Plate badge smaller */
-  .plate-badge { font-size: .7rem; padding: .02rem .25rem; letter-spacing: .5px; }
+  /* ── Plate badge ── */
+  .plate-badge { font-size: .68rem; padding: .05rem .25rem; letter-spacing: .5px; border-width: 1.5px; }
 
-  /* Filter bar stacks */
+  /* ── Filter bar: full-width stacked ── */
+  .filter-bar { margin-bottom: .5rem; }
   .filter-bar .row,
-  .filter-bar form > .row { flex-direction: column; }
+  .filter-bar form > .row { flex-direction: column; gap: .35rem; }
   .filter-bar .col-auto,
-  .filter-bar .col { flex: 1 1 100%; max-width: 100%; margin-bottom: .3rem; }
+  .filter-bar .col { flex: 1 1 100%; max-width: 100%; }
+  .filter-bar .form-select,
+  .filter-bar .form-control {
+    font-size: 16px !important;  /* Prevents iOS zoom on focus */
+    padding: .45rem .5rem;
+    border-radius: .5rem;
+    min-height: 44px;            /* Apple HIG touch target */
+  }
 
-  /* Charts: taller on mobile for readability */
-  canvas { min-height: 180px; }
+  /* ── Buttons: 44px min touch target ── */
+  .btn { min-height: 36px; font-size: .8rem; border-radius: .5rem; }
+  .btn-sm { font-size: .72rem; padding: .3rem .55rem; min-height: 32px; }
+  .btn-group { gap: .2rem; flex-wrap: wrap; }
+  .btn-group.flex-wrap .btn { margin-bottom: .25rem; flex: 1 1 auto; min-width: 0; }
 
-  /* Buttons */
-  .btn-sm { font-size: .75rem; padding: .2rem .5rem; }
-  .btn-group { gap: .15rem; }
+  /* ── Forms: prevent iOS zoom ── */
+  .form-control, .form-select, textarea {
+    font-size: 16px !important;  /* Critical: prevents iOS zoom */
+    border-radius: .5rem;
+    min-height: 44px;
+  }
+  .form-label { font-size: .8rem; margin-bottom: .2rem; }
+  .form-check { padding-top: .2rem; padding-bottom: .2rem; }
+  .form-check-input { width: 1.15em; height: 1.15em; }
 
-  /* Dashboard header */
-  h4 { font-size: 1.1rem; }
+  /* ── Dashboard header ── */
+  h4 { font-size: 1.05rem; }
+  h5 { font-size: .95rem; }
+  h6 { font-size: .85rem; }
 
-  /* Service form */
-  .big-plate-input { font-size: 1.4rem; letter-spacing: 2px; }
+  /* ── Service form ── */
+  .big-plate-input { font-size: 1.35rem; letter-spacing: 2px; min-height: 48px; }
 
-  /* Alerts */
-  .alert { font-size: .8rem; padding: .5rem .75rem; }
+  /* ── Alerts ── */
+  .alert { font-size: .78rem; padding: .5rem .65rem; border-radius: .5rem; }
 
-  /* Service detail: stack buttons */
-  .btn-group.flex-wrap .btn { margin-bottom: .2rem; }
+  /* ── Charts ── */
+  canvas { min-height: 200px; }
+
+  /* ── Action button row on service detail ── */
+  .detail-actions { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .detail-actions .btn { flex: 1 1 calc(50% - .3rem); text-align: center; }
+
+  /* ── Spacing tweaks ── */
+  .mb-3 { margin-bottom: .65rem !important; }
+  .mb-4 { margin-bottom: .75rem !important; }
+  .mt-3 { margin-top: .65rem !important; }
+  .g-3, .gap-3 { gap: .5rem !important; }
+  .row.g-3 > [class*="col-"] { padding-left: .25rem; padding-right: .25rem; }
+
+  /* ── Service detail: stack layout ── */
+  .col-lg-8, .col-lg-4 { flex: 0 0 100%; max-width: 100%; }
+
+  /* ── Badge ── */
+  .badge { font-size: .65rem; padding: .2em .45em; }
+
+  /* ── Car photo ── */
+  .car-photo { max-height: 180px; border-radius: .625rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   iPhone SE / small phones (< 375px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 374.98px) {
+  body { font-size: .75rem; }
+  .stat-card .display-6 { font-size: 1.1rem; }
+  .stat-card .text-muted { font-size: .6rem; }
+  .table-sm td, .table-sm th { font-size: .68rem; padding: .2rem .2rem; }
+  .navbar-brand { font-size: .8rem; max-width: 140px; }
+  .btn-sm { font-size: .68rem; padding: .25rem .4rem; }
+  h4 { font-size: .95rem; }
+  .card-header { font-size: .75rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   iPhone Plus / Pro Max (428-430px)
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 414px) and (max-width: 575.98px) {
+  .stat-card .display-6 { font-size: 1.35rem; }
+  body { font-size: .84rem; }
+  .table-sm td, .table-sm th { font-size: .76rem; }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -132,10 +233,11 @@ body { font-size: .9rem; }
   .stat-card .display-6 { font-size: 1.4rem; }
   .filter-bar .col-auto { flex: 0 0 auto; }
   .table-sm td, .table-sm th { font-size: .8rem; }
+  .form-control, .form-select { font-size: 16px; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   DESKTOP (≥768px) — just refinements
+   DESKTOP (≥768px)
    ══════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) {
   body { font-size: .9rem; }
@@ -144,7 +246,7 @@ body { font-size: .9rem; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   BOTTOM NAV for mobile (touch-friendly quick actions)
+   BOTTOM NAV — iOS safe area aware
    ══════════════════════════════════════════════════════════════ */
 .mobile-bottom-nav {
   position: fixed;
@@ -154,8 +256,9 @@ body { font-size: .9rem; }
   z-index: 1050;
   display: flex;
   justify-content: space-around;
-  padding: .3rem 0;
-  border-top: 1px solid rgba(0,0,0,.15);
+  padding: .35rem 0;
+  padding-bottom: calc(.35rem + var(--safe-bottom));
+  border-top: 1px solid rgba(0,0,0,.12);
 }
 .mobile-bottom-nav a {
   display: flex;
@@ -163,21 +266,199 @@ body { font-size: .9rem; }
   align-items: center;
   text-decoration: none;
   color: inherit;
-  font-size: .65rem;
-  padding: .2rem .4rem;
+  font-size: .6rem;
+  font-weight: 500;
+  padding: .25rem .3rem;
   flex: 1;
   text-align: center;
+  min-height: 44px;   /* Apple HIG */
+  justify-content: center;
+  border-radius: .5rem;
+  transition: background .15s;
 }
-.mobile-bottom-nav a .nav-icon { font-size: 1.2rem; }
-[data-bs-theme="light"] .mobile-bottom-nav { background: #fff; }
-[data-bs-theme="dark"]  .mobile-bottom-nav { background: #1a1d21; border-color: rgba(255,255,255,.1); }
+.mobile-bottom-nav a:active { background: rgba(0,0,0,.06); }
+.mobile-bottom-nav a .nav-icon { font-size: 1.3rem; line-height: 1; margin-bottom: .1rem; }
+[data-bs-theme="light"] .mobile-bottom-nav {
+  background: rgba(255,255,255,.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+[data-bs-theme="dark"] .mobile-bottom-nav {
+  background: rgba(26,29,33,.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-color: rgba(255,255,255,.08);
+}
 
 @media (min-width: 768px) {
   .mobile-bottom-nav { display: none !important; }
 }
 @media (max-width: 767.98px) {
-  body { padding-bottom: 3.5rem; }
+  body { padding-bottom: calc(3.75rem + var(--safe-bottom)); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE — comprehensive fixes
+   ══════════════════════════════════════════════════════════════ */
+
+/* Tables: override Bootstrap table-light which stays white */
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] .table-light th,
+[data-bs-theme="dark"] .table-light td,
+[data-bs-theme="dark"] thead.table-light,
+[data-bs-theme="dark"] tfoot.table-light,
+[data-bs-theme="dark"] thead.table-light th,
+[data-bs-theme="dark"] tfoot.table-light td {
+  background-color: rgba(255,255,255,.05) !important;
+  color: inherit !important;
+  border-color: rgba(255,255,255,.1) !important;
+}
+
+/* Cards */
+[data-bs-theme="dark"] .card {
+  background-color: #1e2126;
+  border-color: rgba(255,255,255,.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+[data-bs-theme="dark"] .card-header {
+  background-color: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.1);
+  color: #e1e1e1;
+}
+[data-bs-theme="dark"] .card-footer {
+  background-color: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.1);
+}
+
+/* bg-light utility — used on summary cards, car photo placeholders */
+[data-bs-theme="dark"] .bg-light {
+  background-color: #2a2d32 !important;
+  color: #ccc !important;
+}
+[data-bs-theme="dark"] .bg-light.text-muted { color: #999 !important; }
+
+/* Plate badge — white box looks wrong on dark bg */
+[data-bs-theme="dark"] .plate-badge {
+  background: #2a2d32;
+  color: #f0f0f0;
+  border-color: #666;
+}
+
+/* Alert secondary */
+[data-bs-theme="dark"] .alert-secondary {
+  background-color: #2a2d32;
+  border-color: rgba(255,255,255,.12);
+  color: #ccc;
+}
+
+/* Dropdown menus */
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: #1e2126;
+  border-color: rgba(255,255,255,.12);
+}
+[data-bs-theme="dark"] .dropdown-item {
+  color: #ccc;
+}
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+  background-color: rgba(255,255,255,.08);
+  color: #fff;
+}
+[data-bs-theme="dark"] .dropdown-divider {
+  border-color: rgba(255,255,255,.1);
+}
+
+/* Form controls */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: #2a2d32;
+  border-color: rgba(255,255,255,.15);
+  color: #e1e1e1;
+}
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background-color: #2f3238;
+  border-color: var(--brand);
+  color: #f0f0f0;
+}
+[data-bs-theme="dark"] .form-control::placeholder { color: #777; }
+[data-bs-theme="dark"] .input-group-text {
+  background-color: #2a2d32;
+  border-color: rgba(255,255,255,.15);
+  color: #ccc;
+}
+[data-bs-theme="dark"] .form-label { color: #ccc; }
+[data-bs-theme="dark"] .form-check-label { color: #ccc; }
+
+/* Buttons outline fixes */
+[data-bs-theme="dark"] .btn-outline-secondary {
+  color: #adb5bd;
+  border-color: #6c757d;
+}
+[data-bs-theme="dark"] .btn-outline-dark {
+  color: #ccc;
+  border-color: #6c757d;
+}
+[data-bs-theme="dark"] .btn-outline-dark:hover {
+  background-color: #444;
+  color: #fff;
+  border-color: #888;
+}
+
+/* Tables general — borders */
+[data-bs-theme="dark"] .table { --bs-table-color: #dee2e6; border-color: rgba(255,255,255,.08); }
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+  background-color: rgba(255,255,255,.05);
+  color: inherit;
+}
+[data-bs-theme="dark"] .table-active { --bs-table-bg: rgba(255,255,255,.08); }
+
+/* Text overrides */
+[data-bs-theme="dark"] .text-muted { color: #8b9098 !important; }
+[data-bs-theme="dark"] h4,
+[data-bs-theme="dark"] h5,
+[data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .h4,
+[data-bs-theme="dark"] .h5,
+[data-bs-theme="dark"] .h6 { color: #e1e1e1; }
+[data-bs-theme="dark"] .card-title { color: #e1e1e1; }
+[data-bs-theme="dark"] .display-6 { color: #e1e1e1; }
+
+/* stat-card number visibility */
+[data-bs-theme="dark"] .stat-card .display-6 { color: #e8e8e8; }
+[data-bs-theme="dark"] .stat-card .h4 { color: #e8e8e8; }
+
+/* Badge bg-warning text-dark — force readable in dark mode */
+[data-bs-theme="dark"] .badge.bg-warning { color: #000 !important; }
+
+/* Collapse card-body (new user form) */
+[data-bs-theme="dark"] .collapse .card-body,
+[data-bs-theme="dark"] .collapsing .card-body { background-color: #1e2126; }
+
+/* Modal / off-canvas */
+[data-bs-theme="dark"] .modal-content { background-color: #1e2126; border-color: rgba(255,255,255,.1); }
+
+/* Borders */
+[data-bs-theme="dark"] .border-top { border-color: rgba(255,255,255,.1) !important; }
+[data-bs-theme="dark"] hr { border-color: rgba(255,255,255,.1); }
+
+/* Links — keep Bootstrap defaults, just ensure text-decoration none on table links */
+[data-bs-theme="dark"] .table a { color: #6ea8fe; }
+
+/* Specific: success header stays green — ensure text inside table is light */
+[data-bs-theme="dark"] .card.border-success .table td,
+[data-bs-theme="dark"] .card.border-success .table th { color: #dee2e6; }
+
+/* table-responsive scroll shadow */
+[data-bs-theme="dark"] .table-responsive { scrollbar-color: #444 #1e2126; }
+
+/* Login card on dark background */
+[data-bs-theme="dark"] .card-body p { color: #ccc; }
+[data-bs-theme="dark"] .card-body .card-title { color: #e1e1e1; }
+
+/* Service form summary card — bg-light override handled above */
+/* Car detail placeholder */
+[data-bs-theme="dark"] .bg-light.text-muted.text-center { color: #888 !important; }
 
 /* ── Print ────────────────────────────────────────────────── */
 @media print {

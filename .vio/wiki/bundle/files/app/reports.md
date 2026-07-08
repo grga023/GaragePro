@@ -55,11 +55,14 @@ sequenceDiagram
 
 ## Analytics (`/analytics`)
 
-A custom date-range analysis page with four Chart.js charts:
+A custom date-range analysis page with five Chart.js charts:
 1. **Revenue/profit over time** — bar + line combo chart (daily or monthly buckets).
 2. **Revenue structure** — doughnut: parts (retail) vs. labor.
 3. **Parts price comparison** — bar: retail vs. cost vs. margin.
 4. **Profit per worker** — horizontal bar (admin-only, shop-wide scope).
+5. **Service type distribution** — revenue breakdown by type (popravke, vulkanizerski, mali servis).
+
+Analytics supports filtering by `service_type` query parameter and includes a **service type breakdown table** alongside the charts.
 
 The `_build_charts()` function assembles all chart data server-side as JSON, embedded into the template as a `#chartData` element consumed by [analytics.js](../modules/app/static/js.md).
 
@@ -75,16 +78,30 @@ The `send()` endpoint delivers a journal via e-mail:
 
 Uses `send_email()` from `app/email_utils.py` (SMTP, configurable via [Configuration](../architecture/configuration.md)).
 
+## CSV Export (`/analytics/export`)
+
+Exports the current analytics data as a CSV file with columns: Datum, Vrsta (type), Registracija, Vozilo, Vlasnik, Radnik, Delovi (prodajna), Delovi (nabavna), Rad, Ukupno, Profit. Respects the same date range, scope, and service type filters as the analytics page.
+
+## Top Customers (`/top-customers`)
+
+A separate report page showing:
+- **Top 20 owners** by revenue, with service count, revenue, profit, and phone number.
+- **Top 20 vehicles** by revenue, with service count, revenue, and profit.
+
+Supports custom date range (defaults to current year).
+
 ## Key symbols
 
 | Symbol | Role |
 |--------|------|
-| `compose_journal(period, ref, worker, scope_label)` | Build journal dict (reusable from scheduler) |
+| `compose_journal(period, ref, worker, scope_label, shop_id)` | Build journal dict (reusable from scheduler) |
 | `summarize(services)` | Aggregate financials for a service list |
 | `_build_charts(...)` | Assemble Chart.js data series |
 | `index()` | GET `/reports` — journal page |
 | `send()` | POST `/reports/send` — e-mail journal |
 | `analytics()` | GET `/analytics` — charts page |
+| `analytics_export()` | GET `/analytics/export` — CSV download |
+| `top_customers()` | GET `/top-customers` — top customers report |
 
 ## Connections
 

@@ -34,7 +34,7 @@ resource: file:///D:/Service/app/backup.py
 | `/backup/create` | POST | `create()` | Trigger a new backup |
 | `/backup/download/<name>` | GET | `download(name)` | Download a backup ZIP |
 
-All routes are protected by `@login_required` and `@admin_required`.
+All routes are protected by `@login_required` and `@moderator_required`.
 
 ### Download security
 
@@ -64,7 +64,7 @@ backup_20260706_023000.zip
 
 ## Connections
 
-- Protected by `admin_required` from [Authentication & Users](auth.md)
+- Protected by `moderator_required` from `app/security.py`
 - Automatic backups via [Scheduler](../architecture/scheduler.md) (`_do_backup`)
 - Backup retention configured in [Configuration](../architecture/configuration.md) (`BACKUP_KEEP`)
 - Database path derived from [Configuration](../architecture/configuration.md) (`SQLALCHEMY_DATABASE_URI`)

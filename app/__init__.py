@@ -1,4 +1,4 @@
-"""Application factory."""
+"""GaragePro application factory."""
 import os
 import logging
 

@@ -1,8 +1,8 @@
 ---
 type: Architecture
 title: Deployment
-description: Production deployment on Raspberry Pi Zero 2W (systemd + Waitress), Windows
-  quick start, database initialization with init_db.py, and .env configuration.
+description: GaragePro deployment on Raspberry Pi (3B+/4B/5) via one-command installer,
+  systemd + Waitress, Windows dev, and .env configuration.
 tags:
 - deployment
 - raspberry-pi
@@ -14,13 +14,13 @@ timestamp: '2026-07-06T17:35:21Z'
 
 # Deployment
 
-Auto Servis supports two deployment targets: **Raspberry Pi Zero 2W** (production, as a systemd service) and **Windows** (development/testing).
+GaragePro supports two deployment targets: **Raspberry Pi** (production, recommended Pi 4B 2GB+) and **Windows** (development/testing).
 
 ## Deployment Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Pi["Raspberry Pi Zero 2W"]
+    subgraph Pi["Raspberry Pi (4B recommended)"]
         systemd["systemd service"]
         Waitress["serve.py (Waitress)"]
         App["Flask App"]
@@ -41,25 +41,64 @@ flowchart LR
 
 ## Production: Raspberry Pi
 
-### Setup Steps
+### One-Command Install
+
+Clone the repo and run the installer — it handles everything automatically:
+
+```bash
+git clone <repo-url> /tmp/garagepro
+cd /tmp/garagepro
+mv deploy/install-garagepro.txt deploy/install-garagepro.sh
+chmod +x deploy/install-garagepro.sh
+sudo bash deploy/install-garagepro.sh
+```
+
+The installer:
+1. Installs system packages (Python 3, Tesseract OCR, image libraries)
+2. Creates a dedicated `garagepro` system user
+3. Deploys the app to `/opt/garagepro`
+4. Creates a Python venv and installs pip packages
+5. Generates `.env` with a random `SECRET_KEY`
+6. Initializes the SQLite database with demo data
+7. Installs and starts a `garagepro` systemd service
+8. Configures zram swap on low-RAM Pi models (≤1 GB)
+9. Sets up daily automatic backups at 03:00
+
+After install, open `http://<pi-ip>:8000` — default login: `admin` / `admin123`.
+
+### Recommended Hardware
+
+| Model | RAM | Verdict |
+|-------|-----|--------|
+| Pi Zero 2W | 512 MB | Works for basic use, OCR may OOM |
+| **Pi 4B (2 GB)** | **2 GB** | **Sweet spot — all features including OCR** |
+| Pi 4B (4/8 GB) | 4–8 GB | Overkill unless running other services |
+
+Tip: boot from a USB SSD instead of microSD for better SQLite write performance.
+
+### Manual Setup (alternative)
 
 1. Install Python venv: `sudo apt install python3-venv python3-pip`
-2. Clone the repo to `/home/pi/carservice`
+2. Clone the repo to `/opt/garagepro`
 3. Create virtualenv and install dependencies:
    ```bash
-   python3 -m venv .venv
-   .venv/bin/pip install -r requirements.txt
+   python3 -m venv venv
+   venv/bin/pip install -r requirements.txt
    ```
 4. Copy `.env.example` to `.env` and configure `SECRET_KEY`, SMTP settings, etc.
-5. Initialize the database: `.venv/bin/python init_db.py`
-6. Install the systemd service:
-   ```bash
-   sudo cp deploy/carservice.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now carservice
-   ```
+5. Initialize the database: `venv/bin/python init_db.py --seed`
+6. Install the systemd service from `deploy/garagepro-service.txt`
 
 The app listens on port `8000` and is accessible from other devices on the network.
+
+### Uninstall
+
+```bash
+mv deploy/uninstall-garagepro.txt deploy/uninstall-garagepro.sh
+sudo bash deploy/uninstall-garagepro.sh
+```
+
+Removes the service, cron job, and system user. Optionally deletes `/opt/garagepro` (with a final DB backup to `/tmp/`).
 
 ### Production Server (`serve.py`)
 
@@ -107,13 +146,15 @@ Uses Flask's built-in development server with `debug=True` (auto-reload on code 
 ### Demo Data
 
 When `--demo` is used, seeds:
-- **Admin user:** `admin` / `admin123` (Marko Petrović)
-- **Worker user:** `radnik` / `radnik123` (Jovan Jovanović)
-- **Company:** Auto Servis Petrović, Novi Sad
+- **Shop:** Auto Servis Petrović (tenant)
+- **Moderator user:** `moderator` / `moderator123` (System Moderator)
+- **Admin (owner) user:** `admin` / `admin123` (Marko Petrović, assigned to shop)
+- **Worker user:** `radnik` / `radnik123` (Jovan Jovanović, assigned to shop)
+- **Company:** Auto Servis Petrović, Novi Sad (legacy backward compat row)
 - **2 cars:** BMW 320 (NS123AB) and VW Golf 7 (BG456CD)
-- **3 services** with realistic parts and labor
+- **5 services** across three types (mali servis, popravke, vulkanizerski) with realistic parts and labor
 
-Without `--demo`, the database is empty — the first registered user becomes admin.
+Without `--demo`, the database is empty — the first registered user becomes **moderator**.
 
 ## Environment Configuration
 

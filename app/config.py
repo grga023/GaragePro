@@ -1,4 +1,4 @@
-"""Application configuration.
+"""GaragePro application configuration.
 
 All settings can be overridden through environment variables or a .env file
 placed in the project root (see .env.example).
