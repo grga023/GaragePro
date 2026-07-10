@@ -60,12 +60,12 @@
           {% if service and service.parts %}
             {% for p in service.parts %}
             <tr class="part-row">
-              <td><input type="text" name="part_name[]" class="form-control form-control-sm" value="{{ p.name }}"></td>
-              <td><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="{{ p.quantity }}"></td>
-              <td><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="{{ p.price }}"></td>
-              <td><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" value="{{ p.price_with_discount }}"></td>
-              <td class="money line-total">0</td>
-              <td><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
+              <td data-label="Naziv dela"><input type="text" name="part_name[]" class="form-control form-control-sm" value="{{ p.name }}"></td>
+              <td data-label="Količina"><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="{{ p.quantity }}"></td>
+              <td data-label="Cena (bez popusta)"><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="{{ p.price }}"></td>
+              <td data-label="Cena (sa popustom)"><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" placeholder="= bez popusta" value="{{ p.price_with_discount if p.price_with_discount != p.price else '' }}"></td>
+              <td class="money line-total" data-label="Ukupno">0</td>
+              <td class="part-remove"><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
             </tr>
             {% endfor %}
           {% endif %}
@@ -95,25 +95,28 @@
   </div>
 
   <div class="card bg-light mb-3"><div class="card-body py-2">
-    <div class="row text-center">
-      <div class="col"><div class="text-muted small">Delovi (bez popusta)</div><div class="h5 mb-0" id="sumParts">0</div></div>
-      <div class="col"><div class="text-muted small">Rad</div><div class="h5 mb-0" id="sumLabor">0</div></div>
-      <div class="col"><div class="text-muted small">UKUPNO</div><div class="h5 mb-0 text-primary" id="sumTotal">0</div></div>
+    <div class="row text-center stat-row g-2">
+      <div class="col-6 col-md-3"><div class="text-muted small">Delovi (bez popusta)</div><div class="h5 mb-0" id="sumParts">0</div></div>
+      <div class="col-6 col-md-3"><div class="text-muted small">Rad</div><div class="h5 mb-0" id="sumLabor">0</div></div>
+      <div class="col-6 col-md-3"><div class="text-muted small">UKUPNO</div><div class="h5 mb-0 text-primary" id="sumTotal">0</div></div>
+      <div class="col-6 col-md-3"><div class="text-muted small">Profit</div><div class="h5 mb-0 text-success" id="sumProfit">0</div></div>
     </div>
   </div></div>
 
-  <button type="submit" class="btn btn-success">💾 Sačuvaj servis</button>
-  <a href="{{ url_for('cars.detail', car_id=car.id) }}" class="btn btn-outline-secondary">Otkaži</a>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-success">💾 Sačuvaj servis</button>
+    <a href="{{ url_for('cars.detail', car_id=car.id) }}" class="btn btn-outline-secondary">Otkaži</a>
+  </div>
 </form>
 
 <template id="partRowTemplate">
   <tr class="part-row">
-    <td><input type="text" name="part_name[]" class="form-control form-control-sm"></td>
-    <td><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="1"></td>
-    <td><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="0"></td>
-    <td><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" value="0"></td>
-    <td class="money line-total">0</td>
-    <td><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
+    <td data-label="Naziv dela"><input type="text" name="part_name[]" class="form-control form-control-sm"></td>
+    <td data-label="Količina"><input type="number" step="any" name="part_qty[]" class="form-control form-control-sm qty" value="1"></td>
+    <td data-label="Cena (bez popusta)"><input type="number" step="any" name="part_price[]" class="form-control form-control-sm price" value="0"></td>
+    <td data-label="Cena (sa popustom)"><input type="number" step="any" name="part_disc[]" class="form-control form-control-sm disc" placeholder="= bez popusta"></td>
+    <td class="money line-total" data-label="Ukupno">0</td>
+    <td class="part-remove"><button type="button" class="btn btn-sm btn-outline-danger remove-part">✕</button></td>
   </tr>
 </template>
 {% endblock %}

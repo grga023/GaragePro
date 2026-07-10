@@ -16,8 +16,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
   <title>{% block title %}GaragePro{% endblock %}</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <meta name="theme-color" content="#212529">
+  <meta name="apple-mobile-web-app-title" content="GaragePro">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
 </head>
 <body>
 {% if current_user.is_authenticated %}
@@ -26,6 +31,7 @@
     <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
       🔧 {{ company.name if company and company.name else 'GaragePro' }}
     </a>
+    {% if APP_ENV == 'dev' %}<span class="badge bg-warning text-dark me-2" title="Razvojna verzija">DEV</span>{% endif %}
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -116,6 +122,13 @@
 <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0"></iframe>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    });
+  }
+</script>
 <script>
 function inlinePrint(url) {
   var frame = document.getElementById('printFrame');

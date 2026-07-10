@@ -10,12 +10,12 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
             <label class="form-label">Korisničko ime</label>
-            <input type="text" name="username" class="form-control" autofocus required>
+            <input type="text" name="username" class="form-control" autocomplete="username" autofocus required>
           </div>
           <div class="mb-3">
             <label class="form-label">Lozinka</label>
             <div class="input-group">
-              <input type="password" name="password" id="passwordInput" class="form-control" required>
+              <input type="password" name="password" id="passwordInput" class="form-control" autocomplete="current-password" required>
               <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" tabindex="-1" title="Prikaži/sakrij lozinku">
                 <span id="eyeIcon">👁️</span>
               </button>

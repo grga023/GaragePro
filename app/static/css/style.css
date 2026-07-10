@@ -38,9 +38,48 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
 .card-header { font-weight: 600; font-size: .875rem; padding: .6rem .75rem; }
 
 /* ── Stat cards ───────────────────────────────────────────── */
-.stat-card .display-6 { font-weight: 700; font-size: 1.6rem; }
-.stat-card .card-body { padding: .75rem .5rem; }
+.stat-card { height: 100%; }
+.stat-card .card-body {
+  padding: .75rem .5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 92px;
+}
 .stat-card .text-muted { font-size: .75rem; }
+.stat-card .stat-label { margin-bottom: .35rem; }
+.stat-card .stat-value {
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+.stat-card .stat-value-money { font-size: 1.15rem; }
+.stat-card .display-6 { font-weight: 700; font-size: 1.6rem; }
+
+/* ── Stat row: equal columns via CSS grid ─────────────────────
+   Bootstrap col-6/col-md-3 wrapped to one-per-row on phones due to
+   sub-pixel rounding (width:50% -> 187.5px -> 188px overflow). Grid
+   fractions divide the space cleanly, so 2 (mobile) / 4 (desktop)
+   cards always sit side by side with equal heights. */
+.stat-row.row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .75rem;
+  margin-left: 0;
+  margin-right: 0;
+}
+.stat-row.row > [class*="col-"] {
+  width: auto !important;
+  max-width: none !important;
+  flex: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.stat-row .card { height: 100%; margin-bottom: 0; }
+@media (max-width: 767.98px) {
+  .stat-row.row { grid-template-columns: 1fr 1fr; gap: .6rem; }
+}
 
 /* ── Tables ───────────────────────────────────────────────── */
 .table-sm td, .table-sm th { padding: .35rem .4rem; font-size: .82rem; }
@@ -116,11 +155,14 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
   .navbar-text { font-size: .75rem; }
   .collapse.navbar-collapse { max-height: 65vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-  /* ── Stat cards: 2×2 grid, snug ── */
-  .stat-card .display-6 { font-size: 1.25rem; line-height: 1.2; }
-  .stat-card .text-muted { font-size: .65rem; }
-  .stat-card .card-body { padding: .5rem .4rem; }
-  .stat-card .h4 { font-size: .95rem; }
+  /* ── Stat cards: 2×2 grid — same look as ≥576px ── */
+  .stat-card .display-6 { font-size: 1.4rem; line-height: 1.2; }
+  .stat-card .stat-value { font-size: 1.4rem; line-height: 1.2; }
+  .stat-card .stat-value-money { font-size: 1.05rem; }
+  .stat-card .text-muted { font-size: .7rem; }
+  .stat-card .card-body { padding: .75rem .5rem; min-height: 92px; }
+  .stat-card .stat-label { margin-bottom: .35rem; }
+  .stat-card .h4 { font-size: 1rem; }
   .stat-card { min-height: 0; }
 
   /* ── Cards ── */
@@ -208,8 +250,10 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 374.98px) {
   body { font-size: .75rem; }
-  .stat-card .display-6 { font-size: 1.1rem; }
-  .stat-card .text-muted { font-size: .6rem; }
+  .stat-card .display-6 { font-size: 1.25rem; }
+  .stat-card .stat-value { font-size: 1.25rem; }
+  .stat-card .stat-value-money { font-size: .92rem; }
+  .stat-card .text-muted { font-size: .65rem; }
   .table-sm td, .table-sm th { font-size: .68rem; padding: .2rem .2rem; }
   .navbar-brand { font-size: .8rem; max-width: 140px; }
   .btn-sm { font-size: .68rem; padding: .25rem .4rem; }
@@ -221,7 +265,6 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
    iPhone Plus / Pro Max (428-430px)
    ══════════════════════════════════════════════════════════════ */
 @media (min-width: 414px) and (max-width: 575.98px) {
-  .stat-card .display-6 { font-size: 1.35rem; }
   body { font-size: .84rem; }
   .table-sm td, .table-sm th { font-size: .76rem; }
 }
@@ -231,6 +274,8 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
    ══════════════════════════════════════════════════════════════ */
 @media (min-width: 576px) and (max-width: 767.98px) {
   .stat-card .display-6 { font-size: 1.4rem; }
+  .stat-card .stat-value { font-size: 1.4rem; }
+  .stat-card .stat-value-money { font-size: 1.05rem; }
   .filter-bar .col-auto { flex: 0 0 auto; }
   .table-sm td, .table-sm th { font-size: .8rem; }
   .form-control, .form-select { font-size: 16px; }
@@ -242,6 +287,8 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
 @media (min-width: 768px) {
   body { font-size: .9rem; }
   .stat-card .display-6 { font-size: 1.8rem; }
+  .stat-card .stat-value { font-size: 1.8rem; }
+  .stat-card .stat-value-money { font-size: 1.35rem; }
   .table-sm td, .table-sm th { font-size: .85rem; padding: .35rem .5rem; }
 }
 
@@ -460,8 +507,109 @@ html { overflow-y: scroll; -webkit-overflow-scrolling: touch; }
 /* Car detail placeholder */
 [data-bs-theme="dark"] .bg-light.text-muted.text-center { color: #888 !important; }
 
+/* ══════════════════════════════════════════════════════════════
+   PARTS ENTRY TABLE → card layout on phones (< 576px)
+   The 6-column input table is unusable on a 390px screen, so each
+   part row becomes a self-contained labelled card.
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 575.98px) {
+  /* Let the parts card breathe (no inner horizontal scroll needed) */
+  #partsTable { display: block; }
+  #partsTable > thead { display: none; }
+  #partsTable > tbody,
+  #partsTable > tfoot { display: block; width: 100%; }
+
+  #partsTable .part-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .4rem .6rem;
+    position: relative;
+    padding: .65rem .7rem;
+    margin: .5rem;
+    border: 1px solid var(--bs-border-color, rgba(0,0,0,.15));
+    border-radius: .625rem;
+    background: var(--bs-body-bg);
+  }
+  #partsTable .part-row > td {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    border: none;
+    font-size: .8rem;
+  }
+  #partsTable .part-row > td::before {
+    content: attr(data-label);
+    margin-bottom: .15rem;
+    font-size: .66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: var(--bs-secondary-color, #6c757d);
+  }
+  /* Naziv dela spans the full width; leave room for the ✕ button */
+  #partsTable .part-row > td[data-label="Naziv dela"] {
+    grid-column: 1 / -1;
+    padding-right: 2.2rem;
+  }
+  /* Ukupno line stretches full width and reads as a summary line */
+  #partsTable .part-row > td.line-total {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .1rem;
+    padding-top: .45rem;
+    border-top: 1px dashed var(--bs-border-color, rgba(0,0,0,.15));
+    font-weight: 600;
+    text-align: left;
+  }
+  #partsTable .part-row > td.line-total::before { margin-bottom: 0; }
+  /* Remove button floats to the top-right corner of the card */
+  #partsTable .part-row > td.part-remove {
+    position: absolute;
+    top: .4rem;
+    right: .45rem;
+    width: auto;
+    padding: 0;
+  }
+  #partsTable .part-row > td.part-remove::before { display: none; }
+  #partsTable .part-row > td.part-remove .remove-part {
+    min-height: 32px;
+    min-width: 32px;
+    line-height: 1;
+  }
+  /* Footer total as a clean full-width row */
+  #partsTable > tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .55rem .7rem;
+  }
+  #partsTable > tfoot th {
+    border: none;
+    padding: 0;
+    text-align: left !important;
+  }
+  #partsTable > tfoot th:empty { display: none; }
+}
+
 /* ── Print ────────────────────────────────────────────────── */
 @media print {
   .navbar, .no-print, .mobile-bottom-nav, footer { display: none !important; }
   body { padding-bottom: 0; }
+}
+/* ── Sticky form action bar (service form) ────────── */
+.form-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+@media (max-width: 767.98px) {
+  .form-actions {
+    position: sticky;
+    bottom: calc(3.75rem + var(--safe-bottom));
+    z-index: 1020;
+    padding: .5rem .75rem;
+    margin: .5rem -.75rem 0;
+    background: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-border-color, rgba(0,0,0,.15));
+    box-shadow: 0 -4px 12px rgba(0,0,0,.06);
+  }
+  .form-actions .btn { flex: 1; }
 }

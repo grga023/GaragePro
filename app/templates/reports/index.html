@@ -49,7 +49,7 @@
   </form>
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-3 stat-row">
   <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
     <div class="text-muted small">Servisa</div><div class="h4 mb-0">{{ journal.totals.count }}</div></div></div></div>
   <div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-2">
@@ -87,19 +87,19 @@
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0 align-middle">
       <thead class="table-light">
-        <tr><th>Datum</th><th>Registracija</th><th>Vlasnik</th>
-          {% if not journal.worker %}<th>Radnik</th>{% endif %}
-          <th class="money">Delovi</th><th class="money">Rad</th><th class="money">Ukupno</th><th class="money">Profit</th><th></th></tr>
+        <tr><th>Datum</th><th>Registracija</th><th class="d-mobile-none">Vlasnik</th>
+          {% if not journal.worker %}<th class="d-mobile-none">Radnik</th>{% endif %}
+          <th class="money d-mobile-none">Delovi</th><th class="money d-mobile-none">Rad</th><th class="money">Ukupno</th><th class="money">Profit</th><th></th></tr>
       </thead>
       <tbody>
       {% for s in journal.services %}
         <tr>
-          <td>{{ s.date | srdate }}</td>
+          <td class="text-nowrap">{{ s.date | srdate }}</td>
           <td><span class="plate-badge">{{ s.car.plate }}</span></td>
-          <td>{{ s.car.owner_name }}</td>
-          {% if not journal.worker %}<td>{{ s.worker.full_name }}</td>{% endif %}
-          <td class="money">{{ s.parts_total_full | currency }}</td>
-          <td class="money">{{ s.labor_price | currency }}</td>
+          <td class="d-mobile-none">{{ s.car.owner_name }}</td>
+          {% if not journal.worker %}<td class="d-mobile-none">{{ s.worker.full_name }}</td>{% endif %}
+          <td class="money d-mobile-none">{{ s.parts_total_full | currency }}</td>
+          <td class="money d-mobile-none">{{ s.labor_price | currency }}</td>
           <td class="money">{{ s.total_full | currency }}</td>
           <td class="money text-success">{{ s.total_profit | currency }}</td>
           <td><a href="{{ url_for('services.detail', service_id=s.id) }}" class="btn btn-sm btn-outline-primary">›</a></td>

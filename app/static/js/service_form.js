@@ -10,19 +10,28 @@
   function recalc() {
     var rows = document.querySelectorAll("#partsBody .part-row");
     var partsTotal = 0;
+    var partsCost = 0;
     rows.forEach(function (row) {
       var qty = parseFloat(row.querySelector(".qty").value) || 0;
       var price = parseFloat(row.querySelector(".price").value) || 0;
+      var discEl = row.querySelector(".disc");
+      var discRaw = discEl ? discEl.value.trim() : "";
+      // Blank discount means no discount -> cost equals the full price.
+      var disc = discRaw === "" ? price : (parseFloat(discRaw) || 0);
       var line = qty * price;
       partsTotal += line;
+      partsCost += qty * disc;
       row.querySelector(".line-total").textContent = fmt(line);
     });
     var labor = parseFloat(document.getElementById("laborPrice").value) || 0;
+    var profit = labor + (partsTotal - partsCost);
 
     document.getElementById("partsTotal").textContent = fmt(partsTotal);
     document.getElementById("sumParts").textContent = fmt(partsTotal);
     document.getElementById("sumLabor").textContent = fmt(labor);
     document.getElementById("sumTotal").textContent = fmt(partsTotal + labor);
+    var sp = document.getElementById("sumProfit");
+    if (sp) sp.textContent = fmt(profit);
   }
 
   function addRow() {

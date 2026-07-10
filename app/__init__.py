@@ -13,6 +13,17 @@ from . import models, utils
 from .models import SERVICE_TYPES, SERVICE_TYPE_LABELS
 
 
+def _asset_version(app):
+    """Cache-busting token = mtime of style.css. Stable in prod (until the file
+    changes), auto-updates in dev — unlike a random value it lets the browser
+    actually cache the stylesheet."""
+    try:
+        css = os.path.join(app.static_folder, "css", "style.css")
+        return int(os.path.getmtime(css))
+    except OSError:
+        return 0
+
+
 # Apply pragmatic SQLite settings on every new connection: WAL journaling for
 # better concurrency, enforced foreign keys, and a busy timeout so the Pi does
 # not throw "database is locked" under light concurrent use.
@@ -43,9 +54,6 @@ def create_app(config_class=Config):
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    if app.config.get("SECRET_KEY") == "promeni-me-u-produkciji":
-        app.logger.warning("SECRET_KEY je podrazumevani — postavite ga u .env za produkciju!")
-
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -73,6 +81,22 @@ def create_app(config_class=Config):
     def media(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
+    # ---- PWA: manifest + service worker (public, no login) --------------
+    @app.route("/manifest.webmanifest")
+    def web_manifest():
+        resp = send_from_directory(app.static_folder, "manifest.webmanifest")
+        resp.headers["Content-Type"] = "application/manifest+json"
+        return resp
+
+    @app.route("/sw.js")
+    def service_worker():
+        # Served from root so its scope covers the whole app.
+        resp = send_from_directory(os.path.join(app.static_folder, "js"), "sw.js")
+        resp.headers["Content-Type"] = "application/javascript"
+        resp.headers["Service-Worker-Allowed"] = "/"
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     # ---- Jinja helpers --------------------------------------------------
     app.jinja_env.filters["currency"] = utils.format_currency
     app.jinja_env.filters["srdate"] = utils.sr_date
@@ -88,6 +112,8 @@ def create_app(config_class=Config):
             "currency_code": app.config.get("CURRENCY", "RSD"),
             "SERVICE_TYPES": SERVICE_TYPES,
             "SERVICE_TYPE_LABELS": SERVICE_TYPE_LABELS,
+            "APP_ENV": app.config.get("APP_ENV", "prod"),
+            "ASSET_VERSION": _asset_version(app),
         }
 
     # ---- Log out users who were deactivated mid-session -----------------

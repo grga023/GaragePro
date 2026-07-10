@@ -10,16 +10,19 @@ Uses Tesseract OCR. Parses the standard Serbian auto-parts invoice format:
 import io
 import os
 import re
+import shutil
 import logging
 
 from PIL import Image
 
 log = logging.getLogger(__name__)
 
-# Tesseract config — set env var BEFORE pytesseract is ever imported
+# Tesseract config — set env var BEFORE pytesseract is ever imported.
+# Prefer the binary on PATH (Linux/macOS: /usr/bin/tesseract); fall back to the
+# default Windows install location for local Windows testing.
 TESSERACT_CMD = os.environ.get(
     "TESSERACT_CMD",
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    shutil.which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 )
 # Use LOCAL tessdata copy — avoids Tesseract's hardcoded registry path
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))

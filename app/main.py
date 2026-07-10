@@ -6,6 +6,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from .extensions import db
 from .models import Company, Car, Service, Shop, SERVICE_TYPES, SERVICE_TYPE_LABELS
@@ -24,6 +25,7 @@ def dashboard():
     q = scoped_query(Service)
     if not current_user.is_admin:
         q = q.filter(Service.worker_id == current_user.id)
+    q = q.options(selectinload(Service.parts))
 
     from datetime import timedelta
     today_start, today_end = period_range("day")

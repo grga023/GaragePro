@@ -1,0 +1,26 @@
+{# Reusable pagination nav. Expects a `pagination` object (Flask-SQLAlchemy).
+   Preserves all current query-string args (search, filters) across pages. #}
+{% if pagination and pagination.pages > 1 %}
+{% set args = request.args.to_dict() %}
+{% set _ = args.pop('page', None) %}
+<nav class="mt-3" aria-label="Stranice">
+  <ul class="pagination pagination-sm justify-content-center mb-0 flex-wrap">
+    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.prev_num or 1, **args) }}" aria-label="Prethodna">‹</a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+      {% if p %}
+        <li class="page-item {{ 'active' if p == pagination.page }}">
+          <a class="page-link" href="{{ url_for(request.endpoint, page=p, **args) }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.next_num or pagination.pages, **args) }}" aria-label="Sledeća">›</a>
+    </li>
+  </ul>
+</nav>
+<div class="text-center text-muted small mt-1">Strana {{ pagination.page }} / {{ pagination.pages }} • ukupno {{ pagination.total }}</div>
+{% endif %}

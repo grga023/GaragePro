@@ -16,6 +16,7 @@ from .models import Car, Service, User, ROLE_ADMIN, SERVICE_TYPES, SERVICE_TYPE_
 from .security import admin_required, scoped_query
 from .utils import period_range, PERIOD_LABELS, sr_date, SR_MONTHS
 from .email_utils import send_email
+from sqlalchemy.orm import selectinload
 
 reports_bp = Blueprint("reports", __name__)
 
@@ -117,7 +118,9 @@ def _services_in_range(start, end, worker, shop_id=None, service_type=None):
         q = q.filter(Service.worker_id == worker.id)
     if service_type and service_type in SERVICE_TYPE_LABELS:
         q = q.filter(Service.service_type == service_type)
-    return q.order_by(Service.date.desc(), Service.id.desc()).all()
+    return (q.order_by(Service.date.desc(), Service.id.desc())
+             .options(selectinload(Service.parts))
+             .all())
 
 
 def compose_journal(period, ref, worker=None, scope_label=None, shop_id=None):

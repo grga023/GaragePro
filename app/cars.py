@@ -11,6 +11,7 @@ from .extensions import db
 from .models import Car, Service, FUEL_TYPES
 from .security import scoped_query
 from .utils import save_image
+from sqlalchemy.orm import selectinload
 
 cars_bp = Blueprint("cars", __name__)
 
@@ -36,8 +37,11 @@ def list_cars():
             db.or_(Car.plate.ilike(like), Car.owner_name.ilike(like),
                    Car.brand.ilike(like), Car.model.ilike(like))
         )
-    cars = cars.order_by(Car.owner_name).all()
-    return render_template("cars/list.html", cars=cars, q=query)
+    cars = cars.order_by(Car.owner_name).options(selectinload(Car.services))
+    page = request.args.get("page", 1, type=int)
+    pagination = cars.paginate(page=page, per_page=25, error_out=False)
+    return render_template("cars/list.html", cars=pagination.items,
+                           pagination=pagination, q=query)
 
 
 @cars_bp.route("/car/<int:car_id>")
@@ -120,6 +124,29 @@ def edit(car_id):
         return redirect(url_for("cars.detail", car_id=car.id))
 
     return render_template("cars/form.html", car=car, fuel_types=FUEL_TYPES)
+
+
+@cars_bp.route("/car/<int:car_id>/delete", methods=["POST"])
+@login_required
+def delete(car_id):
+    if not (current_user.is_admin or current_user.is_moderator):
+        abort(403)
+    car = db.session.get(Car, car_id) or abort(404)
+    if not current_user.is_moderator and car.shop_id != current_user.shop_id:
+        abort(403)
+
+    if car.photo_path:
+        path = os.path.join(current_app.config["UPLOAD_FOLDER"], car.photo_path)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    db.session.delete(car)
+    db.session.commit()
+    flash("Vozilo i svi njegovi servisi su obrisani.", "info")
+    return redirect(url_for("cars.list_cars"))
 
 
 def _apply_form(car: Car, form) -> None:

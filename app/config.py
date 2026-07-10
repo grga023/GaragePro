@@ -18,8 +18,33 @@ def _bool(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _load_secret_key() -> str:
+    """SECRET_KEY from env, otherwise a persistent random key stored in the
+    instance folder. Avoids the shared default key (which made dev/prod session
+    cookies interchangeable) while surviving restarts."""
+    env = os.environ.get("SECRET_KEY")
+    if env:
+        return env
+    INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
+    key_file = INSTANCE_DIR / "secret_key"
+    if key_file.exists():
+        return key_file.read_text(encoding="utf-8").strip()
+    import secrets
+    key = secrets.token_hex(32)
+    key_file.write_text(key, encoding="utf-8")
+    try:
+        os.chmod(key_file, 0o600)
+    except OSError:
+        pass
+    return key
+
+
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "promeni-me-u-produkciji")
+    SECRET_KEY = _load_secret_key()
+
+    # Environment label: "prod" (default) or "dev". Shown as a badge in the UI
+    # and lets a dev copy run side by side with prod (separate dir -> separate DB).
+    APP_ENV = os.environ.get("APP_ENV", "prod")
 
     # Database (SQLite by default, ideal for the Pi Zero 2W)
     SQLALCHEMY_DATABASE_URI = os.environ.get(
@@ -58,6 +83,7 @@ class Config:
     # Trust X-Forwarded-* headers (enable when behind nginx/reverse proxy on the Pi)
     TRUST_PROXY = _bool("TRUST_PROXY", "false")
     # Login throttling
+    LOGIN_THROTTLE = _bool("LOGIN_THROTTLE", "true")  # set false to disable lockout
     LOGIN_MAX_ATTEMPTS = int(os.environ.get("LOGIN_MAX_ATTEMPTS", "5"))
     LOGIN_LOCKOUT_MINUTES = int(os.environ.get("LOGIN_LOCKOUT_MINUTES", "15"))
 

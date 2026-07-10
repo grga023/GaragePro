@@ -40,6 +40,25 @@
   <div class="text-muted small mt-2">{{ scope_label }} • {{ start | srdate }} — {{ end | srdate }} • {{ totals.count }} servisa</div>
 </div></div>
 
+<div class="row g-3 mb-3 stat-row">
+  <div class="col-6 col-md-3"><div class="card stat-card text-center h-100"><div class="card-body">
+    <div class="text-muted small stat-label">Servisa</div>
+    <div class="stat-value">{{ totals.count }}</div>
+  </div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card text-center h-100"><div class="card-body">
+    <div class="text-muted small stat-label">Promet</div>
+    <div class="stat-value stat-value-money">{{ totals.revenue | currency }}</div>
+  </div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card text-center h-100"><div class="card-body">
+    <div class="text-muted small stat-label">Profit</div>
+    <div class="stat-value stat-value-money text-success">{{ totals.profit | currency }}</div>
+  </div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card text-center h-100"><div class="card-body">
+    <div class="text-muted small stat-label">Marža na delove</div>
+    <div class="stat-value">{% if totals.parts_cost %}{{ '%.1f'|format(totals.parts_profit / totals.parts_cost * 100) }}%{% else %}—{% endif %}</div>
+  </div></div></div>
+</div>
+
 <div class="row g-3 mb-3">
   <div class="col-md-4"><div class="card h-100">
     <div class="card-header">Analiza cena delova</div>

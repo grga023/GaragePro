@@ -26,13 +26,8 @@ def moderator_required(view):
 
 
 def owner_required(view):
-    """Shop owners (admin) or moderators."""
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403)
-        return view(*args, **kwargs)
-    return wrapped
+    """Shop owners (admin) or moderators — identical rule to admin_required."""
+    return admin_required(view)
 
 
 def scoped_query(model):

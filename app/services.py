@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from .extensions import db
 from .models import Car, Service, Part, SERVICE_TYPES, SERVICE_TYPE_LABELS, SERVICE_TYPE_POPRAVKE
 from .security import scoped_query
+from sqlalchemy.orm import selectinload
 
 services_bp = Blueprint("services", __name__)
 
@@ -157,9 +158,12 @@ def list_services():
     if filter_type and filter_type in SERVICE_TYPE_LABELS:
         q = q.filter(Service.service_type == filter_type)
 
-    services = q.order_by(Service.date.desc(), Service.id.desc()).all()
-    return render_template("services/list.html", services=services, q=plate,
-                           filter_type=filter_type)
+    page = request.args.get("page", 1, type=int)
+    q = (q.order_by(Service.date.desc(), Service.id.desc())
+          .options(selectinload(Service.parts)))
+    pagination = q.paginate(page=page, per_page=25, error_out=False)
+    return render_template("services/list.html", services=pagination.items,
+                           pagination=pagination, q=plate, filter_type=filter_type)
 
 
 # ---------------------------------------------------------------------------
@@ -193,11 +197,16 @@ def _rebuild_parts(service: Service, form) -> None:
         name = name.strip()
         if not name:
             continue
+        price = _to_float(prices[i] if i < len(prices) else 0)
+        # If the discount price is left blank, there was no discount — the part
+        # cost equals the full (non-discount) price.
+        disc_raw = discs[i] if i < len(discs) else ""
+        discount = price if str(disc_raw).strip() == "" else _to_float(disc_raw)
         part = Part(
             name=name,
             quantity=_to_float(qtys[i] if i < len(qtys) else 1) or 1.0,
-            price=_to_float(prices[i] if i < len(prices) else 0),
-            price_with_discount=_to_float(discs[i] if i < len(discs) else 0),
+            price=price,
+            price_with_discount=discount,
         )
         service.parts.append(part)
 

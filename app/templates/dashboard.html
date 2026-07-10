@@ -22,29 +22,29 @@
 </div>
 {% endfor %}
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 stat-row">
   <div class="col-6 col-md-3">
-    <div class="card stat-card text-center"><div class="card-body">
-      <div class="text-muted small">Servisi danas</div>
-      <div class="display-6">{{ stats.today_count }}</div>
+    <div class="card stat-card text-center h-100"><div class="card-body">
+      <div class="text-muted small stat-label">Servisi danas</div>
+      <div class="stat-value">{{ stats.today_count }}</div>
     </div></div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card stat-card text-center"><div class="card-body">
-      <div class="text-muted small">Promet danas</div>
-      <div class="h4 mt-2">{{ stats.today_revenue | currency }}</div>
+    <div class="card stat-card text-center h-100"><div class="card-body">
+      <div class="text-muted small stat-label">Promet danas</div>
+      <div class="stat-value stat-value-money">{{ stats.today_revenue | currency }}</div>
     </div></div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card stat-card text-center"><div class="card-body">
-      <div class="text-muted small">Servisi (mesec)</div>
-      <div class="display-6">{{ stats.month_count }}</div>
+    <div class="card stat-card text-center h-100"><div class="card-body">
+      <div class="text-muted small stat-label">Servisi (mesec)</div>
+      <div class="stat-value">{{ stats.month_count }}</div>
     </div></div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card stat-card text-center"><div class="card-body">
-      <div class="text-muted small">Promet (mesec)</div>
-      <div class="h4 mt-2">{{ stats.month_revenue | currency }}</div>
+    <div class="card stat-card text-center h-100"><div class="card-body">
+      <div class="text-muted small stat-label">Promet (mesec)</div>
+      <div class="stat-value stat-value-money">{{ stats.month_revenue | currency }}</div>
     </div></div>
   </div>
 </div>

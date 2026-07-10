@@ -27,6 +27,8 @@ def _client_key():
 
 def _seconds_left():
     cfg = current_app.config
+    if not cfg.get("LOGIN_THROTTLE", True):
+        return 0
     window = cfg["LOGIN_LOCKOUT_MINUTES"] * 60
     now = time.time()
     key = _client_key()
@@ -65,7 +67,8 @@ def login():
             if next_url and not next_url.startswith("/"):
                 next_url = None  # only allow local redirects
             return redirect(next_url or url_for("main.dashboard"))
-        _login_failures[_client_key()].append(time.time())
+        if current_app.config.get("LOGIN_THROTTLE", True):
+            _login_failures[_client_key()].append(time.time())
         flash("Pogrešno korisničko ime ili lozinka.", "danger")
 
     return render_template("auth/login.html")

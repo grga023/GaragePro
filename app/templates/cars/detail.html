@@ -12,7 +12,7 @@
       <h5><span class="plate-badge">{{ car.plate }}</span></h5>
       <table class="table table-sm mb-0">
         <tr><td class="text-muted">Vlasnik</td><td><strong>{{ car.owner_name }}</strong></td></tr>
-        <tr><td class="text-muted">Telefon</td><td>{{ car.phone or '-' }}</td></tr>
+        <tr><td class="text-muted">Telefon</td><td>{% if car.phone %}<a href="tel:{{ car.phone | replace(' ', '') }}">{{ car.phone }}</a>{% else %}-{% endif %}</td></tr>
         <tr><td class="text-muted">Vozilo</td><td>{{ car.description or '-' }}</td></tr>
         <tr><td class="text-muted">Gorivo</td><td>{{ FUEL_LABELS.get(car.fuel_type, car.fuel_type or '-') }}</td></tr>
         <tr><td class="text-muted">Kilometraža</td><td><strong>{{ '{:,}'.format(car.mileage).replace(',', '.') if car.mileage else '-' }} km</strong></td></tr>
@@ -32,6 +32,14 @@
           <a href="{{ url_for('printing.car_pdf', car_id=car.id, mode='owner') }}" class="btn btn-outline-danger">📄 PDF (vlasnik)</a>
           {% endif %}
         </div>
+        {% if current_user.is_admin or current_user.is_moderator %}
+        <hr class="my-1">
+        <form method="post" action="{{ url_for('cars.delete', car_id=car.id) }}"
+              onsubmit="return confirm('Obrisati vozilo {{ car.plate }} i svih {{ car.services | length }} servisa? Ova radnja je nepovratna.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm w-100">🗑️ Obriši vozilo</button>
+        </form>
+        {% endif %}
       </div>
     </div></div>
   </div>
