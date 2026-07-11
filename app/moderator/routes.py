@@ -14,12 +14,13 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..models import (
-    Shop, User, Car, Service, Part,
+    Shop, User, Car, Service, Part, EmailConfig,
     ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER,
     SERVICE_TYPES, SERVICE_TYPE_LABELS,
 )
 from ..security import moderator_required
 from ..utils import save_image, period_range, SR_MONTHS
+from ..email_utils import send_email
 
 moderator_bp = Blueprint("moderator", __name__, url_prefix="/moderator")
 
@@ -331,6 +332,73 @@ def edit_shop(shop_id):
         return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
 
     return render_template("moderator/shop_form.html", shop=shop)
+
+
+@moderator_bp.route("/shop/<int:shop_id>/email", methods=["GET", "POST"])
+@login_required
+@moderator_required
+def email_config(shop_id):
+    """Per-shop e-mail (SMTP) settings and automatic report schedule."""
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    ec = shop.email_config
+
+    if request.method == "POST":
+        if ec is None:
+            ec = EmailConfig(shop_id=shop.id)
+            db.session.add(ec)
+
+        f = request.form
+        ec.smtp_host = f.get("smtp_host", "").strip()
+        ec.smtp_port = f.get("smtp_port", type=int) or 587
+        sec = f.get("smtp_security", "starttls")
+        ec.smtp_security = sec if sec in EmailConfig.SECURITY_CHOICES else "starttls"
+        ec.smtp_user = f.get("smtp_user", "").strip()
+        # Only overwrite the stored password when a new value is entered.
+        new_pw = f.get("smtp_password", "")
+        if new_pw:
+            ec.smtp_password = new_pw
+        ec.from_addr = f.get("from_addr", "").strip()
+        ec.recipients = f.get("recipients", "").strip()
+        ec.enabled = f.get("enabled") == "on"
+        ec.send_daily = f.get("send_daily") == "on"
+        ec.send_weekly = f.get("send_weekly") == "on"
+        ec.send_monthly = f.get("send_monthly") == "on"
+        db.session.commit()
+        flash("E-mail podešavanja su sačuvana.", "success")
+        return redirect(url_for("moderator.email_config", shop_id=shop.id))
+
+    return render_template("moderator/email_config.html",
+                           shop=shop, ec=ec or EmailConfig(shop_id=shop.id))
+
+
+@moderator_bp.route("/shop/<int:shop_id>/email/test", methods=["POST"])
+@login_required
+@moderator_required
+def email_test(shop_id):
+    """Send a test e-mail using the shop's saved SMTP settings."""
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    ec = shop.email_config
+    if not ec or not ec.is_configured:
+        flash("Prvo sačuvajte SMTP podešavanja (SMTP host je obavezan).", "danger")
+        return redirect(url_for("moderator.email_config", shop_id=shop.id))
+
+    test_to = request.form.get("test_to", "").strip()
+    recipients = [test_to] if test_to else ec.recipient_list()
+    if not recipients:
+        owners = User.query.filter_by(shop_id=shop.id, role=ROLE_ADMIN, active=True).all()
+        recipients = [o.email for o in owners if o.email]
+    if not recipients:
+        flash("Nema primalaca. Unesite test adresu ili podesite primaoce.", "danger")
+        return redirect(url_for("moderator.email_config", shop_id=shop.id))
+
+    html = render_template("email/test.html", shop=shop)
+    try:
+        send_email(recipients, f"GaragePro — test e-mail ({shop.name})", html,
+                   settings=ec.smtp_settings())
+        flash(f"Test e-mail je poslat na: {', '.join(recipients)}", "success")
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Slanje test e-maila nije uspelo: {exc}", "danger")
+    return redirect(url_for("moderator.email_config", shop_id=shop.id))
 
 
 @moderator_bp.route("/shop/<int:shop_id>/toggle", methods=["POST"])

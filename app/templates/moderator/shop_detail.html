@@ -4,10 +4,25 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">🏢 {{ shop.name }}</h4>
   <div>
+    <a href="{{ url_for('moderator.email_config', shop_id=shop.id) }}" class="btn btn-sm btn-outline-secondary">✉️ E-mail</a>
     <a href="{{ url_for('moderator.edit_shop', shop_id=shop.id) }}" class="btn btn-sm btn-outline-secondary">✏️ Uredi</a>
     <a href="{{ url_for('moderator.index') }}" class="btn btn-sm btn-outline-primary">← Svi servisi</a>
   </div>
 </div>
+
+{% set ec = shop.email_config %}
+<p class="mb-2">
+  <span class="badge bg-{{ 'success' if ec and ec.is_configured and ec.enabled else 'secondary' }}">
+    ✉️ E-mail: {{ 'aktivan' if ec and ec.is_configured and ec.enabled else 'nije podešen' }}
+  </span>
+  {% if ec and ec.is_configured %}
+    {% set periods = [] %}
+    {% if ec.send_daily %}{% set _ = periods.append('dnevni') %}{% endif %}
+    {% if ec.send_weekly %}{% set _ = periods.append('nedeljni') %}{% endif %}
+    {% if ec.send_monthly %}{% set _ = periods.append('mesečni') %}{% endif %}
+    <span class="text-muted small">Žurnali: {{ periods | join(', ') if periods else 'nijedan' }}</span>
+  {% endif %}
+</p>
 
 {% if shop.address or shop.contact %}
 <p class="text-muted">

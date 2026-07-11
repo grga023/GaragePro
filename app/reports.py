@@ -12,7 +12,8 @@ from flask import (
 from flask_login import login_required, current_user
 
 from .extensions import db
-from .models import Car, Service, User, ROLE_ADMIN, SERVICE_TYPES, SERVICE_TYPE_LABELS
+from .models import (Car, Service, User, Shop, EmailConfig,
+                    ROLE_ADMIN, ROLE_MODERATOR, SERVICE_TYPES, SERVICE_TYPE_LABELS)
 from .security import admin_required, scoped_query
 from .utils import period_range, PERIOD_LABELS, sr_date, SR_MONTHS
 from .email_utils import send_email
@@ -168,24 +169,43 @@ def index():
     period = request.args.get("period", "day")
     if period not in ("day", "week", "month"):
         period = "day"
-    scope = request.args.get("scope", "me")
+    scope = request.args.get("scope", "all" if current_user.is_moderator else "me")
     ref_str = request.args.get("date", date.today().isoformat())
     try:
         ref = datetime.strptime(ref_str, "%Y-%m-%d").date()
     except ValueError:
         ref = date.today()
 
+    # Moderators may focus the journal on one shop; owners/workers are pinned
+    # to their own shop.
+    shops = []
+    if current_user.is_moderator:
+        shops = Shop.query.order_by(Shop.name).all()
+        sel_shop_id = request.args.get("shop", type=int)
+    else:
+        sel_shop_id = current_user.shop_id
+
     worker, scope_label = _resolve_scope(scope, None)
-    shop_id = None if current_user.is_moderator else current_user.shop_id
-    journal = compose_journal(period, ref, worker, scope_label, shop_id=shop_id)
-    workers = (User.query.filter_by(shop_id=current_user.shop_id).order_by(User.full_name).all()
-               if current_user.is_admin and not current_user.is_moderator
-               else User.query.order_by(User.full_name).all() if current_user.is_moderator else [])
+    journal = compose_journal(period, ref, worker, scope_label, shop_id=sel_shop_id)
+
+    # Worker ("Obuhvat") options limited to the shop currently in view.
+    if current_user.is_moderator:
+        wq = User.query.filter(User.role != ROLE_MODERATOR)
+        if sel_shop_id:
+            wq = wq.filter(User.shop_id == sel_shop_id)
+        workers = wq.order_by(User.full_name).all()
+    elif current_user.is_admin:
+        workers = (User.query.filter_by(shop_id=current_user.shop_id)
+                   .order_by(User.full_name).all())
+    else:
+        workers = []
 
     return render_template(
         "reports/index.html",
         journal=journal,
         workers=workers,
+        shops=shops,
+        sel_shop_id=sel_shop_id,
         ref=ref,
         period=period,
         scope=scope,
@@ -207,14 +227,24 @@ def send():
     if scope == "all" and not current_user.is_admin:
         abort(403)
 
-    journal = compose_journal(period, ref, *_resolve_scope(scope, None))
+    # Same shop scoping as the journal view: moderators may target one shop,
+    # everyone else is pinned to their own.
+    if current_user.is_moderator:
+        sel_shop_id = request.form.get("shop", type=int)
+    else:
+        sel_shop_id = current_user.shop_id
+
+    journal = compose_journal(period, ref, *_resolve_scope(scope, None),
+                              shop_id=sel_shop_id)
 
     # Determine recipients per the rules:
     #  - worker journal  -> that worker's e-mail
-    #  - overall journal -> admin(s) only
+    #  - overall journal -> the shop's admin(s) (+ sender)
     if scope == "all":
-        admins = User.query.filter_by(role=ROLE_ADMIN, active=True).all()
-        recipients = [a.email for a in admins]
+        admin_q = User.query.filter_by(role=ROLE_ADMIN, active=True)
+        if sel_shop_id:
+            admin_q = admin_q.filter(User.shop_id == sel_shop_id)
+        recipients = [a.email for a in admin_q.all()]
         recipients += [current_user.email]
     else:
         recipients = [journal["worker"].email] if journal["worker"] else []
@@ -225,14 +255,21 @@ def send():
                f"({sr_date(journal['start'])} - {sr_date(journal['end'])})")
     html = render_template("email/journal.html", journal=journal)
 
+    # Prefer the target shop's own SMTP config; fall back to global .env config.
+    settings = None
+    if sel_shop_id:
+        ec = EmailConfig.query.filter_by(shop_id=sel_shop_id).first()
+        if ec and ec.is_configured:
+            settings = ec.smtp_settings()
+
     try:
-        send_email(recipients, subject, html)
+        send_email(recipients, subject, html, settings=settings)
         flash(f"Žurnal je poslat na: {', '.join(recipients)}", "success")
     except Exception as exc:  # noqa: BLE001
         flash(f"Slanje e-maila nije uspelo: {exc}", "danger")
 
     return redirect(url_for("reports.index", period=period, scope=scope,
-                            date=ref.isoformat()))
+                            date=ref.isoformat(), shop=sel_shop_id or None))
 
 
 @reports_bp.route("/analytics")

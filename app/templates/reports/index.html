@@ -17,11 +17,24 @@
       <label class="form-label small">Datum (referentni)</label>
       <input type="date" name="date" class="form-control" value="{{ ref.isoformat() }}">
     </div>
+    {% if current_user.is_moderator %}
+    <div class="col-auto">
+      <label class="form-label small">Servis</label>
+      <select name="shop" class="form-select">
+        <option value="">— svi servisi —</option>
+        {% for sh in shops %}
+          <option value="{{ sh.id }}" {{ 'selected' if sel_shop_id == sh.id }}>{{ sh.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
     {% if current_user.is_admin %}
     <div class="col-auto">
       <label class="form-label small">Obuhvat</label>
       <select name="scope" class="form-select">
+        {% if not current_user.is_moderator %}
         <option value="me"  {{ 'selected' if scope=='me' }}>Ja ({{ current_user.full_name }})</option>
+        {% endif %}
         <option value="all" {{ 'selected' if scope=='all' }}>Ceo servis (svi)</option>
         {% for w in workers %}
           <option value="worker:{{ w.id }}" {{ 'selected' if scope=='worker:'~w.id }}>{{ w.full_name }}</option>
@@ -45,6 +58,7 @@
     <input type="hidden" name="period" value="{{ period }}">
     <input type="hidden" name="date" value="{{ ref.isoformat() }}">
     <input type="hidden" name="scope" value="{{ scope }}">
+    <input type="hidden" name="shop" value="{{ sel_shop_id or '' }}">
     <button class="btn btn-outline-primary btn-sm">✉️ Pošalji na e-mail</button>
   </form>
 </div>

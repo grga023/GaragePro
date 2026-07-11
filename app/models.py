@@ -42,6 +42,83 @@ class Shop(db.Model):
     cars = db.relationship("Car", backref="shop", lazy=True)
 
 
+class EmailConfig(db.Model):
+    """Per-shop e-mail (SMTP) settings and automatic report schedule.
+
+    Managed by system moderators — each service (shop) has its own mailbox and
+    decides which journals (daily / weekly / monthly) are e-mailed automatically
+    and to whom.  Kept as a separate 1:1 table (not columns on Shop) so that
+    ``db.create_all()`` adds it to existing databases without a migration.
+
+    Note: the SMTP password is stored as-is (plain text) in the local SQLite
+    database, consistent with the app's existing ``.env`` based SMTP_PASSWORD.
+    """
+
+    __tablename__ = "email_configs"
+
+    SECURITY_CHOICES = ("none", "starttls", "ssl")
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey("shops.id"),
+                        unique=True, nullable=False, index=True)
+
+    # ---- SMTP connection ----
+    smtp_host = db.Column(db.String(255))
+    smtp_port = db.Column(db.Integer, default=587)
+    smtp_security = db.Column(db.String(10), default="starttls")  # none|starttls|ssl
+    smtp_user = db.Column(db.String(255))
+    smtp_password = db.Column(db.String(255))
+    from_addr = db.Column(db.String(255))
+
+    # ---- Automatic report schedule ----
+    enabled = db.Column(db.Boolean, default=True)       # master on/off switch
+    send_daily = db.Column(db.Boolean, default=False)
+    send_weekly = db.Column(db.Boolean, default=False)
+    send_monthly = db.Column(db.Boolean, default=False)
+    recipients = db.Column(db.Text)  # comma / newline / semicolon separated
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    shop = db.relationship(
+        "Shop", backref=db.backref("email_config", uselist=False,
+                                   cascade="all, delete-orphan"))
+
+    @property
+    def is_configured(self) -> bool:
+        """True when at least an SMTP host is set."""
+        return bool(self.smtp_host)
+
+    def recipient_list(self) -> list:
+        """Parsed, de-duplicated list of recipient e-mail addresses."""
+        raw = (self.recipients or "").replace("\n", ",").replace(";", ",")
+        seen, out = set(), []
+        for addr in (a.strip() for a in raw.split(",")):
+            if addr and addr.lower() not in seen:
+                seen.add(addr.lower())
+                out.append(addr)
+        return out
+
+    def wants(self, period: str) -> bool:
+        """Whether this shop auto-sends the given period ('day'/'week'/'month')."""
+        return {
+            "day": self.send_daily,
+            "week": self.send_weekly,
+            "month": self.send_monthly,
+        }.get(period, False)
+
+    def smtp_settings(self) -> dict:
+        """Settings dict consumed by ``email_utils.send_email``."""
+        return {
+            "host": self.smtp_host,
+            "port": self.smtp_port or 587,
+            "security": self.smtp_security or "starttls",
+            "user": self.smtp_user,
+            "password": self.smtp_password,
+            "from_addr": self.from_addr or self.smtp_user,
+        }
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
