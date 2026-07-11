@@ -53,6 +53,14 @@
                 {{ 'Deaktiviraj' if u.active else 'Aktiviraj' }}
               </button>
             </form>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pwModal{{ u.id }}">🔑 Lozinka</button>
+            {% if u.id != current_user.id %}
+            <form method="post" action="{{ url_for('auth.delete_user', user_id=u.id) }}" class="d-inline"
+                  onsubmit="return confirm('Trajno obrisati korisnika {{ u.username }}? Ova radnja se ne može poništiti.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger btn-sm" title="Trajno obriši">🗑️ Obriši</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}
@@ -60,4 +68,29 @@
     </table>
   </div>
 </div>
+
+{% for u in users %}
+<div class="modal fade" id="pwModal{{ u.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('auth.reset_password', user_id=u.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Resetuj lozinku — {{ u.username }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Nova lozinka</label>
+          <input type="password" name="password" class="form-control" required>
+          <div class="form-text">Najmanje 8 karaktera, mora sadržati slova i brojeve.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Otkaži</button>
+          <button type="submit" class="btn btn-primary">Sačuvaj lozinku</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
 {% endblock %}

@@ -11,7 +11,7 @@ from datetime import timedelta
 from flask_login import login_user, logout_user, login_required, current_user
 
 from .extensions import db
-from .models import User, ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER
+from .models import User, Service, ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER
 from .security import admin_required
 
 auth_bp = Blueprint("auth", __name__)
@@ -37,6 +37,18 @@ def _seconds_left():
     if len(recent) >= cfg["LOGIN_MAX_ATTEMPTS"]:
         return int(window - (now - recent[0]))
     return 0
+
+
+def _password_policy_errors(password: str) -> list:
+    """Validate a new password against the shop policy.
+
+    Returns a list of human-readable error messages (empty when valid)."""
+    errors = []
+    if len(password) < 8:
+        errors.append("Lozinka mora imati najmanje 8 karaktera.")
+    if password.isdigit() or password.isalpha():
+        errors.append("Lozinka mora sadržati i slova i brojeve.")
+    return errors
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -96,10 +108,7 @@ def register():
         errors = []
         if not full_name or not username or not email:
             errors.append("Sva polja su obavezna.")
-        if len(password) < 8:
-            errors.append("Lozinka mora imati najmanje 8 karaktera.")
-        if password.isdigit() or password.isalpha():
-            errors.append("Lozinka mora sadržati i slova i brojeve.")
+        errors.extend(_password_policy_errors(password))
         if password != password2:
             errors.append("Lozinke se ne poklapaju.")
         if User.query.filter_by(username=username).first():
@@ -129,6 +138,60 @@ def register():
         return redirect(url_for("auth.login"))
 
     return render_template("auth/register.html")
+
+
+@auth_bp.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    """Self-service profile: edit own name, username, e-mail and password.
+
+    Role, active status and shop assignment are intentionally NOT editable here
+    (those stay admin-managed to prevent privilege escalation)."""
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        current = request.form.get("current_password", "")
+        new = request.form.get("new_password", "")
+        new2 = request.form.get("new_password2", "")
+
+        errors = []
+        if not (full_name and username and email):
+            errors.append("Ime, korisničko ime i e-mail su obavezni.")
+        if username and User.query.filter(
+                User.username == username, User.id != current_user.id).first():
+            errors.append("Korisničko ime već postoji.")
+        if email and User.query.filter(
+                User.email == email, User.id != current_user.id).first():
+            errors.append("E-mail adresa je već registrovana.")
+
+        change_pw = bool(new or new2)
+        if change_pw:
+            if not current_user.check_password(current):
+                errors.append("Trenutna lozinka nije ispravna.")
+            errors.extend(_password_policy_errors(new))
+            if new != new2:
+                errors.append("Nove lozinke se ne poklapaju.")
+
+        if errors:
+            for e in errors:
+                flash(e, "danger")
+            return render_template("auth/profile.html",
+                                   full_name=full_name, username=username, email=email)
+
+        current_user.full_name = full_name
+        current_user.username = username
+        current_user.email = email
+        if change_pw:
+            current_user.set_password(new)
+        db.session.commit()
+        flash("Profil je uspešno ažuriran.", "success")
+        return redirect(url_for("auth.profile"))
+
+    return render_template("auth/profile.html",
+                           full_name=current_user.full_name,
+                           username=current_user.username,
+                           email=current_user.email)
 
 
 # ---------------------------------------------------------------------------
@@ -203,4 +266,56 @@ def toggle_active(user_id):
     user.active = not user.active
     db.session.commit()
     flash("Status naloga je promenjen.", "success")
+    return redirect(url_for("auth.users"))
+
+
+@auth_bp.route("/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Permanently delete a user account.
+
+    Blocked when the user still has recorded services (Service.worker_id is a
+    NOT NULL foreign key) — deactivate such accounts instead to keep history."""
+    user = db.session.get(User, user_id) or abort(404)
+    if user.id == current_user.id:
+        flash("Ne možete obrisati sopstveni nalog.", "danger")
+        return redirect(url_for("auth.users"))
+    if user.role == ROLE_MODERATOR and not current_user.is_moderator:
+        flash("Nemate dozvolu da brišete moderatora.", "danger")
+        return redirect(url_for("auth.users"))
+
+    svc_count = Service.query.filter_by(worker_id=user.id).count()
+    if svc_count:
+        flash(f"Korisnik ima {svc_count} evidentiranih servisa i ne može se obrisati. "
+              f"Deaktivirajte nalog umesto brisanja.", "danger")
+        return redirect(url_for("auth.users"))
+
+    username = user.username
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"Korisnik {username} je trajno obrisan.", "success")
+    return redirect(url_for("auth.users"))
+
+
+@auth_bp.route("/users/<int:user_id>/password", methods=["POST"])
+@login_required
+@admin_required
+def reset_password(user_id):
+    """Admin resets another user's password (no current password required)."""
+    user = db.session.get(User, user_id) or abort(404)
+    if user.role == ROLE_MODERATOR and not current_user.is_moderator:
+        flash("Nemate dozvolu da menjate moderatora.", "danger")
+        return redirect(url_for("auth.users"))
+
+    password = request.form.get("password", "")
+    errors = _password_policy_errors(password)
+    if errors:
+        for e in errors:
+            flash(e, "danger")
+        return redirect(url_for("auth.users"))
+
+    user.set_password(password)
+    db.session.commit()
+    flash(f"Lozinka korisnika {user.username} je resetovana.", "success")
     return redirect(url_for("auth.users"))
