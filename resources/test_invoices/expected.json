@@ -1,0 +1,8 @@
+{
+  "newFakt.jpg": {
+    "count": 1,
+    "parts": [
+      { "name_contains": "ZGLOB", "qty": 1, "price": 4380.0, "price_disc": 3109.8 }
+    ]
+  }
+}

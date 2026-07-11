@@ -13,7 +13,7 @@ import re
 import shutil
 import logging
 
-from PIL import Image
+from PIL import Image, ImageOps, ImageFilter
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +34,57 @@ os.environ['TESSDATA_PREFIX'] = TESSDATA_DIR
 
 # Units of measure — OCR may mangle them
 _JM_PAT = r'(?:KOM|kom|L|l|lit|SET|set|PAR|par|PAK|pak|M|m|tL)'
+
+# Resampling filter constant (Pillow 10+ moved these under Image.Resampling)
+_RESAMPLE = getattr(Image, "Resampling", Image).LANCZOS
+
+
+# --------------------------------------------------------------------------
+# Language selection + image preprocessing
+# --------------------------------------------------------------------------
+def _available_langs():
+    """Set of Tesseract languages available in the local tessdata dir."""
+    try:
+        return {os.path.splitext(f)[0] for f in os.listdir(TESSDATA_DIR)
+                if f.endswith('.traineddata')}
+    except OSError:
+        return set()
+
+
+def _ocr_lang():
+    """Prefer Serbian Latin (srp_latn); fall back to srp, then eng.
+
+    English is appended so ASCII digits and currency codes stay accurate.
+    """
+    avail = _available_langs()
+    if 'srp_latn' in avail:
+        return 'srp_latn+eng' if 'eng' in avail else 'srp_latn'
+    if 'srp' in avail:
+        return 'srp+eng' if 'eng' in avail else 'srp'
+    return 'eng'
+
+
+def _preprocess(img, min_width=2200, max_scale=4.0):
+    """Clean an invoice image for OCR (Pillow only — Raspberry-Pi friendly).
+
+    Honour EXIF orientation, convert to grayscale, upscale small scans, then
+    normalise contrast, denoise and sharpen.  Returns a grayscale image and
+    lets Tesseract do its own (Otsu) binarisation, which copes with uneven
+    lighting better than a single global threshold.
+    """
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:  # noqa: BLE001 - malformed EXIF must not break OCR
+        pass
+    img = img.convert('L')
+    if img.width and img.width < min_width:
+        scale = min(min_width / img.width, max_scale)
+        img = img.resize((int(img.width * scale), int(img.height * scale)),
+                         _RESAMPLE)
+    img = ImageOps.autocontrast(img, cutoff=1)
+    img = img.filter(ImageFilter.MedianFilter(size=3))
+    img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=3))
+    return img
 
 
 def _parse_number(s):
@@ -155,41 +206,142 @@ def _extract_parts_line(line):
     }
 
 
-def _ocr_image(img):
-    """Run Tesseract OCR on a PIL Image, return text.
-    
-    Uses subprocess with stdin/stdout pipe to avoid temp file issues.
-    Passes --tessdata-dir and TESSDATA_PREFIX env var explicitly.
+def _run_tesseract(img, mode='txt'):
+    """Run Tesseract on a PIL image and return decoded stdout.
+
+    mode: 'txt' for plain text, 'tsv' for tab-separated word boxes.
+    Tuned for invoices: Serbian-Latin (+eng), LSTM engine, uniform block,
+    preserved inter-word spacing so columns stay aligned.
     """
     import subprocess
-    
-    # Convert image to PNG bytes for stdin
+
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     png_bytes = buf.getvalue()
-    
+
     cmd = [
-        TESSERACT_CMD,
-        'stdin', 'stdout',
+        TESSERACT_CMD, 'stdin', 'stdout',
         '--tessdata-dir', TESSDATA_DIR,
-        '-l', 'eng',
+        '-l', _ocr_lang(),
+        '--oem', '1', '--psm', '6', '--dpi', '300',
+        '-c', 'preserve_interword_spaces=1',
+        mode,
     ]
-    
+
     env = os.environ.copy()
     env['TESSDATA_PREFIX'] = TESSDATA_DIR
-    
+
     log.info("Running: %s", ' '.join(cmd))
-    
+
     result = subprocess.run(
-        cmd, input=png_bytes, capture_output=True, timeout=60, env=env
+        cmd, input=png_bytes, capture_output=True, timeout=120, env=env
     )
-    
+
     if result.returncode != 0:
         stderr = result.stderr.decode('utf-8', errors='replace')
         log.error("Tesseract stderr: %s", stderr)
         raise RuntimeError(f"Tesseract error: {stderr}")
-    
+
     return result.stdout.decode('utf-8', errors='replace')
+
+
+def _ocr_image(img):
+    """Plain-text OCR (used for name back-fill and as a fallback)."""
+    return _run_tesseract(img, 'txt')
+
+
+def _ocr_tsv(img):
+    """Word-level OCR with layout (TSV)."""
+    return _run_tesseract(img, 'tsv')
+
+
+def _tsv_rows(tsv_text, min_conf=35):
+    """Group TSV words into visual rows (ordered top->bottom, left->right).
+
+    Drops low-confidence words.  Returns a list of rows; each row is a list of
+    {'text', 'left', 'top', 'conf'} dicts.
+    """
+    rows = {}
+    for ln in tsv_text.splitlines():
+        cols = ln.split('\t')
+        if len(cols) < 12 or cols[0] != '5':  # level 5 == word
+            continue
+        try:
+            conf = float(cols[10])
+        except ValueError:
+            continue
+        text = cols[11].strip()
+        if not text or conf < min_conf:
+            continue
+        key = (cols[2], cols[3], cols[4])  # block, paragraph, line
+        rows.setdefault(key, []).append({
+            'text': text, 'left': int(cols[6]), 'top': int(cols[7]), 'conf': conf,
+        })
+    ordered = []
+    for words in rows.values():
+        words.sort(key=lambda w: w['left'])
+        ordered.append((min(w['top'] for w in words), words))
+    ordered.sort(key=lambda t: t[0])
+    return [w for _, w in ordered]
+
+
+def _row_text(words):
+    return ' '.join(w['text'] for w in words)
+
+
+def _clean_name_tokens(tokens):
+    """Keep only description ("Opis") words, dropping the RB index, catalog and
+    control numbers, and left-margin OCR noise."""
+    words = []
+    for t in tokens:
+        tok = t.strip('“”„"\'`.,:;|=\xac*()[]{}<>')
+        if not tok:
+            continue
+        letters = sum(c.isalpha() for c in tok)
+        digits = sum(c.isdigit() for c in tok)
+        if letters == 0:
+            continue  # pure numbers (RB, control no.) or punctuation
+        if digits >= 4 or ('-' in tok and digits >= 2):
+            continue  # catalog number, e.g. 644009-GSP / 10921639-SL / OPS4512
+        if letters == 1 and len(tok) <= 2:
+            continue  # single-letter margin junk (A, S, ...)
+        words.append(tok)
+    return words
+
+
+def _extract_from_words(words):
+    """Column/token based extraction from one TSV row.
+
+    Uses Tesseract's word segmentation (positions) instead of regex-splitting a
+    flat string: find 'qty JM', keep the description words before it as the name
+    (dropping RB / catalog / control numbers), and read the numeric words after
+    it as the prices.
+    """
+    texts = [w['text'] for w in words]
+    jm_idx = None
+    qty = 1
+    for i in range(1, len(texts)):
+        if re.fullmatch(_JM_PAT, texts[i], re.IGNORECASE) and \
+                re.fullmatch(r'\d+\.?', texts[i - 1]):
+            jm_idx = i
+            qty = int(re.sub(r'\D', '', texts[i - 1]) or '1')
+            break
+    if jm_idx is None:
+        return None
+
+    before = texts[:jm_idx - 1]
+    after = texts[jm_idx + 1:]
+    name = ' '.join(_clean_name_tokens(before))
+
+    # Numeric price tokens after the unit of measure.
+    nums = [_parse_number(t) for t in after if re.search(r'\d', t)]
+    nums = [n for n in nums if n > 0]
+    if not nums:
+        return None
+    price = nums[0]
+    price_disc = nums[1] if len(nums) > 1 else nums[0]
+
+    return {'name': name, 'qty': qty, 'price': price, 'price_disc': price_disc}
 
 
 def _pdf_to_images(file_bytes):
@@ -223,72 +375,49 @@ def parse_invoice(file_storage):
     else:
         images = [Image.open(io.BytesIO(file_bytes))]
 
-    # OCR all pages
+    # Preprocess + OCR every page: TSV for the parts table, plain text for the
+    # name back-fill fallback.
     all_text = []
+    all_rows = []
     for img in images:
-        text = _ocr_image(img)
-        all_text.append(text)
-        log.debug("OCR page text:\n%s", text[:2000])
+        proc = _preprocess(img)
+        all_text.append(_ocr_image(proc))
+        all_rows.append(_tsv_rows(_ocr_tsv(proc)))
+        log.debug("OCR page rows: %d", len(all_rows[-1]))
 
-    # Parse each page separately, then merge
-    page_results = []
-    for page_text in all_text:
-        lines = page_text.split('\n')
-        page_parts = []
-
-        for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
+    # Build parts per page from TSV word-rows (token/column based), falling back
+    # to the flat-line regex parser for any row it can't split.  Back-fill a
+    # missing name from a nearby description row.
+    header_skip = ('opis', 'naziv', 'artikal', 'rb', 'kataloski', 'jedinicna',
+                   'jedinicna cena', 'kolicina', 'iznos', 'popust', 'cena',
+                   'prod', 'prod.', 'ukupno')
+    raw_pages = []
+    for rows in all_rows:
+        row_texts = [_row_text(r) for r in rows]
+        raw = []
+        for i, words in enumerate(rows):
+            r = _extract_from_words(words)
+            if not r:
+                r = _extract_parts_line(row_texts[i])
+            if not r:
                 continue
-
-            result = _extract_parts_line(line)
-            if not result:
-                continue
-
-            # If name is too short or missing, look back at previous lines
-            if len(result['name']) < 3:
+            if len(r['name']) < 3:
                 for back in range(1, 5):
                     if i - back < 0:
                         break
-                    prev = lines[i - back].strip()
-                    if not prev:
+                    prev = row_texts[i - back].strip()
+                    if not prev or re.search(_JM_PAT, prev, re.IGNORECASE):
                         continue
-                    if re.search(_JM_PAT, prev, re.IGNORECASE):
+                    cand = re.sub(r'^\d+\s+', '', prev)
+                    cand = re.sub(r'^\S*\d+\S*\s+', '', cand, count=1)
+                    cand = re.sub(r'\s+\d[\d\s]{3,}$', '', cand.strip())
+                    cand = re.sub(r'[\xac=|]', '', cand).strip()
+                    if cand.lower() in header_skip:
                         continue
-                    candidate = re.sub(r'^\d+\s+', '', prev)
-                    candidate = re.sub(r'^\S*\d+\S*\s+', '', candidate, count=1)
-                    candidate = candidate.strip()
-                    candidate = re.sub(r'\s+\d[\d\s]{3,}$', '', candidate)
-                    candidate = re.sub(r'(\s+[a-z]\w*)+\s*$', '', candidate)
-                    candidate = re.sub(r'[\xac=|]', '', candidate).strip()
-                    # Skip table headers
-                    skip = ('opis', 'naziv', 'artikal', 'rb',
-                            'kataloski', 'jedinicna', 'jedinicna cena',
-                            'kolicina', 'iznos', 'popust', 'cena',
-                            'prod', 'prod.', 'ukupno')
-                    if candidate.lower().strip() in skip:
-                        continue
-                    if len(candidate) >= 3 and any(c.isalpha() for c in candidate):
-                        result['name'] = candidate
+                    if len(cand) >= 3 and any(c.isalpha() for c in cand):
+                        r['name'] = cand
                         break
-
-            if result['name'] and len(result['name']) >= 3:
-                page_parts.append(result)
-
-        page_results.append(page_parts)
-
-    # Collect ALL raw matches (including nameless ones) per page
-    raw_pages = []
-    for page_text in all_text:
-        plines = page_text.split('\n')
-        raw = []
-        for line in plines:
-            line = line.strip()
-            if not line:
-                continue
-            r = _extract_parts_line(line)
-            if r:
-                raw.append(r)
+            raw.append(r)
         raw_pages.append(raw)
 
     # Find the page with the best names and the page with discounts

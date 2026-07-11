@@ -39,7 +39,10 @@ Jezik interfejsa: **srpski (latinica)**.
 ## Preduslov
 
 - **Python 3.10+** (preporučeno 3.11 ili 3.12)
-- **Tesseract OCR** (opcionalno — potreban samo za OCR parsiranje faktura)
+- **Tesseract OCR** (opcionalno — potreban samo za OCR parsiranje faktura).
+  Prepoznavanje je na **srpskom (latinica)** — model `srp_latn` je uključen u
+  `app/tessdata/`, pa je dovoljno instalirati samu Tesseract aplikaciju.
+  PDF fakture zahtevaju `pypdfium2` (instalira se preko `requirements.txt`).
 
 ---
 
