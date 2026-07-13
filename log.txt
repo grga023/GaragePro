@@ -1,0 +1,20 @@
+
+[0;36m╔══════════════════════════════════════════════╗[0m
+[0;36m║          🔧  GaragePro  Installer            ║[0m
+[0;36m║    Car Service Management for Raspberry Pi   ║[0m
+[0;36m╚══════════════════════════════════════════════╝[0m
+
+[0;32m[✓][0m Detected: unknown
+[0;32m[✓][0m RAM: 3814 MB
+
+[0;36m──── Installing system dependencies ────[0m
+[0;32m[✓][0m System packages installed
+
+[0;36m──── Setting up GaragePro user ────[0m
+[0;32m[✓][0m User 'garagepro' already exists
+
+[0;36m──── Deploying application to /opt/garagepro ────[0m
+[0;32m[✓][0m Application files deployed
+
+[0;36m──── Creating Python virtual environment ────[0m
+[0;32m[✓][0m Virtual environment already exists — upgrading packages

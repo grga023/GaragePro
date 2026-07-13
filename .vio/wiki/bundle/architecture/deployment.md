@@ -86,7 +86,7 @@ Tip: boot from a USB SSD instead of microSD for better SQLite write performance.
    venv/bin/pip install -r requirements.txt
    ```
 4. Copy `.env.example` to `.env` and configure `SECRET_KEY`, SMTP settings, etc.
-5. Initialize the database: `venv/bin/python init_db.py --seed`
+5. Initialize the database: `venv/bin/python init_db.py --demo`
 6. Install the systemd service from `deploy/garagepro-service.txt`
 
 The app listens on port `8000` and is accessible from other devices on the network.

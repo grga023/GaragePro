@@ -15,6 +15,30 @@
   <strong>{{ keep }}</strong> kopija.
 </div>
 
+<div class="card mb-3">
+  <div class="card-body">
+    <h6 class="card-title mb-2">⬆️ Otpremi i vrati rezervnu kopiju</h6>
+    <p class="text-muted small mb-2">
+      Izaberite ranije preuzeti <code>.zip</code> fajl da biste vratili bazu i slike.
+      <strong class="text-danger">Pažnja:</strong> ovim se trenutni podaci zamenjuju
+      (automatski se pravi sigurnosna kopija pre zamene).
+    </p>
+    <form method="post" action="{{ url_for('backup.restore') }}"
+          enctype="multipart/form-data"
+          onsubmit="return confirm('Vraćanjem se trenutni podaci zamenjuju sadržajem izabrane rezervne kopije. Nastaviti?');"
+          class="row g-2 align-items-center">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-sm">
+        <input type="file" name="backup" accept=".zip" required
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-auto">
+        <button class="btn btn-warning btn-sm">⬆️ Otpremi i vrati</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="card">
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0 align-middle">
@@ -36,7 +60,8 @@
 </div>
 
 <p class="text-muted small mt-3">
-  Vraćanje: raspakujte <code>.zip</code>, zamenite <code>instance/carservice.db</code>
-  i folder <code>instance/uploads/</code>, pa ponovo pokrenite servis.
+  Vraćanje: otpremite <code>.zip</code> iznad, ili ručno raspakujte i zamenite
+  <code>instance/carservice.db</code> i folder <code>instance/uploads/</code>, pa
+  ponovo pokrenite servis.
 </p>
 {% endblock %}

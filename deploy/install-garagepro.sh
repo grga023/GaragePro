@@ -154,11 +154,11 @@ fi
 # ── Step 6: Initialize database ─────────────────────────────────
 step "Initializing database"
 
-if [[ ! -f "$APP_DIR/instance/service.db" ]]; then
+if [[ ! -f "$APP_DIR/instance/carservice.db" ]]; then
     cd "$APP_DIR"
     "$APP_DIR/venv/bin/python" init_db.py --reset
-    info "Database created with demo data"
-    info "Default login:  admin / admin123"
+    info "Empty database created"
+    info "Register the first account — it becomes MODERATOR automatically"
 else
     warn "Database already exists — skipping initialization"
 fi
@@ -271,7 +271,7 @@ echo -e "${GREEN}║       🎉  GaragePro is running!               ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "  Open in browser:  ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
-echo -e "  Default login:    ${YELLOW}admin${NC} / ${YELLOW}admin123${NC}"
+echo -e "  First run:         ${YELLOW}register an account${NC} — it becomes MODERATOR"
 echo ""
 echo -e "  Useful commands:"
 echo -e "    ${CYAN}sudo systemctl status garagepro${NC}    — check status"

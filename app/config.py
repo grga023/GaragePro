@@ -60,7 +60,9 @@ class Config:
 
     # Uploaded files (car photos, company logo)
     UPLOAD_FOLDER = str(INSTANCE_DIR / "uploads")
-    MAX_CONTENT_LENGTH = 8 * 1024 * 1024  # 8 MB max upload
+    # Max request size. Generous enough to allow restoring a full backup .zip
+    # (database + uploaded images) through the admin UI. Override via MAX_UPLOAD_MB.
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "64")) * 1024 * 1024
 
     # Backups
     BACKUP_DIR = str(INSTANCE_DIR / "backups")
