@@ -40,52 +40,57 @@
 
         {% if current_user.is_moderator %}
           {# ── Moderator: dashboard-centric navigation ── #}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('moderator.dashboard') }}">📊 Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('moderator.shops') }}">🏢 Radnje</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.analytics') }}">📈 Analitika</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.top_customers') }}">🚗 Top kupci</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('moderator.dashboard') }}">📊 {{ _('Dashboard') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('moderator.shops') }}">🏢 {{ _('Radnje') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.analytics') }}">📈 {{ _('Analitika') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.top_customers') }}">🚗 {{ _('Top kupci') }}</a></li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">📋 Više</a>
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">📋 {{ _('Više') }}</a>
             <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="{{ url_for('services.list_services') }}">🔧 Svi servisi</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('cars.list_cars') }}">🚗 Sva vozila</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('reports.index') }}">📄 Žurnal</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('services.list_services') }}">🔧 {{ _('Svi servisi') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('cars.list_cars') }}">🚗 {{ _('Sva vozila') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('reports.index') }}">📄 {{ _('Žurnal') }}</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('auth.users') }}">👥 Korisnici</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('moderator.mail_config') }}">✉️ E-mail (globalno)</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('backup.index') }}">💾 Kopije</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('moderator.update') }}">⬆️ Ažuriranje</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('auth.users') }}">👥 {{ _('Korisnici') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('moderator.mail_config') }}">✉️ {{ _('E-mail (globalno)') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('backup.index') }}">💾 {{ _('Kopije') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('moderator.update') }}">⬆️ {{ _('Ažuriranje') }}</a></li>
             </ul>
           </li>
         {% else %}
           {# ── Admin / Worker: service-centric navigation ── #}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('services.start') }}">➕ Novi servis</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('services.list_services') }}">Servisi</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('cars.list_cars') }}">Vozila</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.index') }}">Žurnal</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.analytics') }}">Analitika</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.top_customers') }}">🚗 Top kupci</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('services.start') }}">➕ {{ _('Novi servis') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('services.list_services') }}">{{ _('Servisi') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('cars.list_cars') }}">{{ _('Vozila') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.index') }}">{{ _('Žurnal') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.analytics') }}">{{ _('Analitika') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.top_customers') }}">🚗 {{ _('Top kupci') }}</a></li>
           {% if current_user.is_admin %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.users') }}">Korisnici</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.setup') }}">⚙️ Podešavanja</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.users') }}">{{ _('Korisnici') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.setup') }}">⚙️ {{ _('Podešavanja') }}</a></li>
           {% endif %}
         {% endif %}
 
       </ul>
       <ul class="navbar-nav">
         <li class="nav-item d-flex align-items-center">
-          <button id="themeToggle" type="button" class="btn btn-sm btn-outline-light me-2" title="Promeni temu">🌙</button>
+          <a class="btn btn-sm btn-outline-light me-2" href="{{ url_for('main.set_language', code='en' if current_locale == 'sr' else 'sr') }}" title="{{ _('Promeni jezik') }}">
+            {{ 'EN' if current_locale == 'sr' else 'SR' }}
+          </a>
+        </li>
+        <li class="nav-item d-flex align-items-center">
+          <button id="themeToggle" type="button" class="btn btn-sm btn-outline-light me-2" title="{{ _('Promeni temu') }}">🌙</button>
         </li>
         <li class="nav-item">
           <span class="navbar-text me-2">
             {{ current_user.full_name }}
             <span class="badge bg-{{ 'danger' if current_user.is_moderator else 'warning text-dark' if current_user.is_admin else 'secondary' }}">
-              {{ ROLE_LABELS[current_user.role] }}
+              {{ _(ROLE_LABELS[current_user.role]) }}
             </span>
           </span>
         </li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.profile') }}">👤 Profil</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Odjava</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.profile') }}">👤 {{ _('Profil') }}</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Odjava') }}</a></li>
       </ul>
     </div>
   </div>
@@ -109,15 +114,15 @@
 {# ── Mobile bottom navigation bar ── #}
 <div class="mobile-bottom-nav d-md-none">
   {% if current_user.is_moderator %}
-    <a href="{{ url_for('moderator.dashboard') }}"><span class="nav-icon">📊</span>Dashboard</a>
-    <a href="{{ url_for('moderator.shops') }}"><span class="nav-icon">🏢</span>Radnje</a>
-    <a href="{{ url_for('reports.analytics') }}"><span class="nav-icon">📈</span>Analitika</a>
-    <a href="{{ url_for('services.list_services') }}"><span class="nav-icon">🔧</span>Servisi</a>
+    <a href="{{ url_for('moderator.dashboard') }}"><span class="nav-icon">📊</span>{{ _('Dashboard') }}</a>
+    <a href="{{ url_for('moderator.shops') }}"><span class="nav-icon">🏢</span>{{ _('Radnje') }}</a>
+    <a href="{{ url_for('reports.analytics') }}"><span class="nav-icon">📈</span>{{ _('Analitika') }}</a>
+    <a href="{{ url_for('services.list_services') }}"><span class="nav-icon">🔧</span>{{ _('Servisi') }}</a>
   {% else %}
-    <a href="{{ url_for('main.dashboard') }}"><span class="nav-icon">🏠</span>Početna</a>
-    <a href="{{ url_for('services.start') }}"><span class="nav-icon">➕</span>Novi</a>
-    <a href="{{ url_for('services.list_services') }}"><span class="nav-icon">🔧</span>Servisi</a>
-    <a href="{{ url_for('reports.analytics') }}"><span class="nav-icon">📈</span>Analitika</a>
+    <a href="{{ url_for('main.dashboard') }}"><span class="nav-icon">🏠</span>{{ _('Početna') }}</a>
+    <a href="{{ url_for('services.start') }}"><span class="nav-icon">➕</span>{{ _('Novi') }}</a>
+    <a href="{{ url_for('services.list_services') }}"><span class="nav-icon">🔧</span>{{ _('Servisi') }}</a>
+    <a href="{{ url_for('reports.analytics') }}"><span class="nav-icon">📈</span>{{ _('Analitika') }}</a>
   {% endif %}
 </div>
 {% endif %}

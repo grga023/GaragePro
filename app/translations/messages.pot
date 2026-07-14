@@ -1,0 +1,355 @@
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-07-14 18:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app/auth.py:49
+msgid "Lozinka mora imati najmanje 8 karaktera."
+msgstr ""
+
+#: app/auth.py:51
+msgid "Lozinka mora sadržati i slova i brojeve."
+msgstr ""
+
+#: app/auth.py:63
+#, python-format
+msgid "Previše neuspešnih pokušaja. Pokušajte ponovo za %(min)s min."
+msgstr ""
+
+#: app/auth.py:72
+msgid "Nalog je deaktiviran. Obratite se administratoru."
+msgstr ""
+
+#: app/auth.py:78
+#, python-format
+msgid "Dobrodošli, %(name)s!"
+msgstr ""
+
+#: app/auth.py:85
+msgid "Pogrešno korisničko ime ili lozinka."
+msgstr ""
+
+#: app/auth.py:94
+msgid "Uspešno ste se odjavili."
+msgstr ""
+
+#: app/auth.py:111
+msgid "Sva polja su obavezna."
+msgstr ""
+
+#: app/auth.py:114
+msgid "Lozinke se ne poklapaju."
+msgstr ""
+
+#: app/auth.py:116 app/auth.py:165
+msgid "Korisničko ime već postoji."
+msgstr ""
+
+#: app/auth.py:118 app/auth.py:168
+msgid "E-mail adresa je već registrovana."
+msgstr ""
+
+#: app/auth.py:137
+msgid "moderator"
+msgstr ""
+
+#: app/auth.py:137
+msgid "radnik"
+msgstr ""
+
+#: app/auth.py:138
+#, python-format
+msgid "Nalog je kreiran (%(role)s). Možete se prijaviti."
+msgstr ""
+
+#: app/auth.py:162
+msgid "Ime, korisničko ime i e-mail su obavezni."
+msgstr ""
+
+#: app/auth.py:173
+msgid "Trenutna lozinka nije ispravna."
+msgstr ""
+
+#: app/auth.py:176
+msgid "Nove lozinke se ne poklapaju."
+msgstr ""
+
+#: app/auth.py:196
+msgid "Profil je uspešno ažuriran."
+msgstr ""
+
+#: app/extensions.py:12
+msgid "Molimo prijavite se da biste pristupili ovoj stranici."
+msgstr ""
+
+#: app/templates/base.html:43 app/templates/base.html:117
+msgid "Dashboard"
+msgstr ""
+
+#: app/templates/base.html:44 app/templates/base.html:118
+msgid "Radnje"
+msgstr ""
+
+#: app/templates/base.html:45 app/templates/base.html:66
+#: app/templates/base.html:119 app/templates/base.html:125
+msgid "Analitika"
+msgstr ""
+
+#: app/templates/base.html:46 app/templates/base.html:67
+msgid "Top kupci"
+msgstr ""
+
+#: app/templates/base.html:48
+msgid "Više"
+msgstr ""
+
+#: app/templates/base.html:50
+msgid "Svi servisi"
+msgstr ""
+
+#: app/templates/base.html:51
+msgid "Sva vozila"
+msgstr ""
+
+#: app/templates/base.html:52 app/templates/base.html:65
+msgid "Žurnal"
+msgstr ""
+
+#: app/templates/base.html:54 app/templates/base.html:69
+msgid "Korisnici"
+msgstr ""
+
+#: app/templates/base.html:55
+msgid "E-mail (globalno)"
+msgstr ""
+
+#: app/templates/base.html:56
+msgid "Kopije"
+msgstr ""
+
+#: app/templates/base.html:57
+msgid "Ažuriranje"
+msgstr ""
+
+#: app/templates/base.html:62
+msgid "Novi servis"
+msgstr ""
+
+#: app/templates/base.html:63 app/templates/base.html:120
+#: app/templates/base.html:124
+msgid "Servisi"
+msgstr ""
+
+#: app/templates/base.html:64
+msgid "Vozila"
+msgstr ""
+
+#: app/templates/base.html:70
+msgid "Podešavanja"
+msgstr ""
+
+#: app/templates/base.html:77
+msgid "Promeni jezik"
+msgstr ""
+
+#: app/templates/base.html:82
+msgid "Promeni temu"
+msgstr ""
+
+#: app/templates/auth/profile.html:2 app/templates/base.html:92
+msgid "Profil"
+msgstr ""
+
+#: app/templates/base.html:93
+msgid "Odjava"
+msgstr ""
+
+#: app/templates/base.html:122
+msgid "Početna"
+msgstr ""
+
+#: app/templates/base.html:123
+msgid "Novi"
+msgstr ""
+
+#: app/templates/auth/login.html:2 app/templates/auth/login.html:8
+msgid "Prijava"
+msgstr ""
+
+#: app/templates/auth/login.html:12 app/templates/auth/profile.html:25
+#: app/templates/auth/register.html:16
+msgid "Korisničko ime"
+msgstr ""
+
+#: app/templates/auth/login.html:16 app/templates/auth/register.html:25
+msgid "Lozinka"
+msgstr ""
+
+#: app/templates/auth/login.html:19
+msgid "Prikaži/sakrij lozinku"
+msgstr ""
+
+#: app/templates/auth/login.html:26
+msgid "Zapamti me (30 dana)"
+msgstr ""
+
+#: app/templates/auth/login.html:28
+msgid "Prijavi se"
+msgstr ""
+
+#: app/templates/auth/login.html:31
+msgid "Nemate nalog?"
+msgstr ""
+
+#: app/templates/auth/login.html:31
+msgid "Registrujte se"
+msgstr ""
+
+#: app/templates/auth/profile.html:8
+msgid "Moj profil"
+msgstr ""
+
+#: app/templates/auth/profile.html:10
+msgid "Uloga"
+msgstr ""
+
+#: app/templates/auth/profile.html:14
+msgid "Nalog kreiran"
+msgstr ""
+
+#: app/templates/auth/profile.html:21 app/templates/auth/register.html:12
+msgid "Ime i prezime"
+msgstr ""
+
+#: app/templates/auth/profile.html:29 app/templates/auth/register.html:20
+msgid "E-mail"
+msgstr ""
+
+#: app/templates/auth/profile.html:33
+msgid "Jezik"
+msgstr ""
+
+#: app/templates/auth/profile.html:42
+msgid "Promena lozinke"
+msgstr ""
+
+#: app/templates/auth/profile.html:42
+msgid "opciono"
+msgstr ""
+
+#: app/templates/auth/profile.html:43
+msgid "Ostavite prazno ako ne želite da menjate lozinku."
+msgstr ""
+
+#: app/templates/auth/profile.html:45
+msgid "Trenutna lozinka"
+msgstr ""
+
+#: app/templates/auth/profile.html:50
+msgid "Nova lozinka"
+msgstr ""
+
+#: app/templates/auth/profile.html:54
+msgid "Potvrda nove lozinke"
+msgstr ""
+
+#: app/templates/auth/profile.html:58
+msgid "Lozinka mora imati najmanje 8 karaktera i sadržati slova i brojeve."
+msgstr ""
+
+#: app/templates/auth/profile.html:60
+msgid "Sačuvaj izmene"
+msgstr ""
+
+#: app/templates/auth/register.html:2
+msgid "Registracija"
+msgstr ""
+
+#: app/templates/auth/register.html:8
+msgid "Registracija radnika"
+msgstr ""
+
+#: app/templates/auth/register.html:29
+msgid "Potvrda lozinke"
+msgstr ""
+
+#: app/templates/auth/register.html:33
+msgid "Registruj se"
+msgstr ""
+
+#: app/templates/auth/register.html:36
+msgid "Prvi kreirani nalog automatski postaje <strong>administrator</strong>."
+msgstr ""
+
+#: app/templates/auth/register.html:38
+msgid "Nazad na prijavu"
+msgstr ""
+
+#: app/templates/errors/403.html:2
+msgid "Zabranjen pristup"
+msgstr ""
+
+#: app/templates/errors/403.html:6
+msgid "Nemate dozvolu za pristup ovoj stranici."
+msgstr ""
+
+#: app/templates/errors/403.html:7 app/templates/errors/404.html:7
+#: app/templates/errors/413.html:7 app/templates/errors/500.html:7
+#: app/templates/errors/csrf.html:8
+msgid "Na početnu"
+msgstr ""
+
+#: app/templates/errors/404.html:2
+msgid "Nije pronađeno"
+msgstr ""
+
+#: app/templates/errors/404.html:6
+msgid "Tražena stranica ne postoji."
+msgstr ""
+
+#: app/templates/errors/413.html:2
+msgid "Fajl prevelik"
+msgstr ""
+
+#: app/templates/errors/413.html:5
+msgid "Fajl je prevelik"
+msgstr ""
+
+#: app/templates/errors/413.html:6
+msgid "Maksimalna dozvoljena veličina otpremljene datoteke je 8 MB."
+msgstr ""
+
+#: app/templates/errors/500.html:2
+msgid "Greška"
+msgstr ""
+
+#: app/templates/errors/500.html:6
+msgid "Došlo je do neočekivane greške. Pokušajte ponovo."
+msgstr ""
+
+#: app/templates/errors/csrf.html:2
+msgid "Sesija istekla"
+msgstr ""
+
+#: app/templates/errors/csrf.html:5
+msgid "Bezbednosna provera nije uspela"
+msgstr ""
+
+#: app/templates/errors/csrf.html:6
+msgid "Vaša sesija je možda istekla. Vratite se i pokušajte ponovo."
+msgstr ""
+

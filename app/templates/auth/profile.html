@@ -1,56 +1,63 @@
 {% extends "base.html" %}
-{% block title %}Profil{% endblock %}
+{% block title %}{{ _('Profil') }}{% endblock %}
 {% block content %}
 <div class="row justify-content-center mt-4">
   <div class="col-md-7 col-lg-6">
     <div class="card">
       <div class="card-body p-4">
-        <h4 class="card-title mb-1">Moj profil</h4>
+        <h4 class="card-title mb-1">{{ _('Moj profil') }}</h4>
         <p class="text-muted small mb-4">
-          Uloga:
+          {{ _('Uloga') }}:
           <span class="badge bg-{{ 'danger' if current_user.is_moderator else 'warning text-dark' if current_user.is_admin else 'secondary' }}">
-            {{ ROLE_LABELS[current_user.role] }}
+            {{ _(ROLE_LABELS[current_user.role]) }}
           </span>
-          &middot; Nalog kreiran: {{ current_user.created_at | srdate }}
+          &middot; {{ _('Nalog kreiran') }}: {{ current_user.created_at | srdate }}
         </p>
 
         <form method="post">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <div class="mb-3">
-            <label class="form-label">Ime i prezime</label>
+            <label class="form-label">{{ _('Ime i prezime') }}</label>
             <input type="text" name="full_name" class="form-control" value="{{ full_name }}" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Korisničko ime</label>
+            <label class="form-label">{{ _('Korisničko ime') }}</label>
             <input type="text" name="username" class="form-control" value="{{ username }}" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">E-mail</label>
+            <label class="form-label">{{ _('E-mail') }}</label>
             <input type="email" name="email" class="form-control" value="{{ email }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _('Jezik') }}</label>
+            <select name="language" class="form-select">
+              <option value="sr" {{ 'selected' if language == 'sr' }}>Srpski</option>
+              <option value="en" {{ 'selected' if language == 'en' }}>English</option>
+            </select>
           </div>
 
           <hr class="my-4">
 
-          <h6 class="mb-1">Promena lozinke <span class="text-muted fw-normal">(opciono)</span></h6>
-          <p class="text-muted small">Ostavite prazno ako ne želite da menjate lozinku.</p>
+          <h6 class="mb-1">{{ _('Promena lozinke') }} <span class="text-muted fw-normal">({{ _('opciono') }})</span></h6>
+          <p class="text-muted small">{{ _('Ostavite prazno ako ne želite da menjate lozinku.') }}</p>
           <div class="mb-3">
-            <label class="form-label">Trenutna lozinka</label>
+            <label class="form-label">{{ _('Trenutna lozinka') }}</label>
             <input type="password" name="current_password" class="form-control" autocomplete="current-password">
           </div>
           <div class="row">
             <div class="col mb-2">
-              <label class="form-label">Nova lozinka</label>
+              <label class="form-label">{{ _('Nova lozinka') }}</label>
               <input type="password" name="new_password" class="form-control" autocomplete="new-password">
             </div>
             <div class="col mb-2">
-              <label class="form-label">Potvrda nove lozinke</label>
+              <label class="form-label">{{ _('Potvrda nove lozinke') }}</label>
               <input type="password" name="new_password2" class="form-control" autocomplete="new-password">
             </div>
           </div>
-          <div class="form-text mb-4">Lozinka mora imati najmanje 8 karaktera i sadržati slova i brojeve.</div>
+          <div class="form-text mb-4">{{ _('Lozinka mora imati najmanje 8 karaktera i sadržati slova i brojeve.') }}</div>
 
-          <button type="submit" class="btn btn-success w-100">Sačuvaj izmene</button>
+          <button type="submit" class="btn btn-success w-100">{{ _('Sačuvaj izmene') }}</button>
         </form>
       </div>
     </div>

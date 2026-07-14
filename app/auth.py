@@ -9,6 +9,7 @@ from flask import (
 from datetime import timedelta
 
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_babel import gettext as _
 
 from .extensions import db
 from .models import User, Service, ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER
@@ -45,9 +46,9 @@ def _password_policy_errors(password: str) -> list:
     Returns a list of human-readable error messages (empty when valid)."""
     errors = []
     if len(password) < 8:
-        errors.append("Lozinka mora imati najmanje 8 karaktera.")
+        errors.append(_("Lozinka mora imati najmanje 8 karaktera."))
     if password.isdigit() or password.isalpha():
-        errors.append("Lozinka mora sadržati i slova i brojeve.")
+        errors.append(_("Lozinka mora sadržati i slova i brojeve."))
     return errors
 
 
@@ -59,8 +60,8 @@ def login():
     if request.method == "POST":
         locked = _seconds_left()
         if locked > 0:
-            flash(f"Previše neuspešnih pokušaja. Pokušajte ponovo za "
-                  f"{locked // 60 + 1} min.", "danger")
+            flash(_("Previše neuspešnih pokušaja. Pokušajte ponovo za "
+                    "%(min)s min.", min=locked // 60 + 1), "danger")
             return render_template("auth/login.html")
 
         username = request.form.get("username", "").strip()
@@ -68,20 +69,20 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             if not user.active:
-                flash("Nalog je deaktiviran. Obratite se administratoru.", "danger")
+                flash(_("Nalog je deaktiviran. Obratite se administratoru."), "danger")
                 return redirect(url_for("auth.login"))
             _login_failures.pop(_client_key(), None)
             remember = request.form.get("remember") == "on"
             duration = timedelta(days=30) if remember else None
             login_user(user, remember=remember, duration=duration)
-            flash(f"Dobrodošli, {user.full_name}!", "success")
+            flash(_("Dobrodošli, %(name)s!", name=user.full_name), "success")
             next_url = request.args.get("next")
             if next_url and not next_url.startswith("/"):
                 next_url = None  # only allow local redirects
             return redirect(next_url or url_for("main.dashboard"))
         if current_app.config.get("LOGIN_THROTTLE", True):
             _login_failures[_client_key()].append(time.time())
-        flash("Pogrešno korisničko ime ili lozinka.", "danger")
+        flash(_("Pogrešno korisničko ime ili lozinka."), "danger")
 
     return render_template("auth/login.html")
 
@@ -90,7 +91,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("Uspešno ste se odjavili.", "info")
+    flash(_("Uspešno ste se odjavili."), "info")
     return redirect(url_for("auth.login"))
 
 
@@ -107,14 +108,14 @@ def register():
 
         errors = []
         if not full_name or not username or not email:
-            errors.append("Sva polja su obavezna.")
+            errors.append(_("Sva polja su obavezna."))
         errors.extend(_password_policy_errors(password))
         if password != password2:
-            errors.append("Lozinke se ne poklapaju.")
+            errors.append(_("Lozinke se ne poklapaju."))
         if User.query.filter_by(username=username).first():
-            errors.append("Korisničko ime već postoji.")
+            errors.append(_("Korisničko ime već postoji."))
         if User.query.filter_by(email=email).first():
-            errors.append("E-mail adresa je već registrovana.")
+            errors.append(_("E-mail adresa je već registrovana."))
 
         if errors:
             for e in errors:
@@ -133,8 +134,9 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        role_txt = "moderator" if first_user else "radnik"
-        flash(f"Nalog je kreiran ({role_txt}). Možete se prijaviti.", "success")
+        role_txt = _("moderator") if first_user else _("radnik")
+        flash(_("Nalog je kreiran (%(role)s). Možete se prijaviti.",
+                role=role_txt), "success")
         return redirect(url_for("auth.login"))
 
     return render_template("auth/register.html")
@@ -157,41 +159,48 @@ def profile():
 
         errors = []
         if not (full_name and username and email):
-            errors.append("Ime, korisničko ime i e-mail su obavezni.")
+            errors.append(_("Ime, korisničko ime i e-mail su obavezni."))
         if username and User.query.filter(
                 User.username == username, User.id != current_user.id).first():
-            errors.append("Korisničko ime već postoji.")
+            errors.append(_("Korisničko ime već postoji."))
         if email and User.query.filter(
                 User.email == email, User.id != current_user.id).first():
-            errors.append("E-mail adresa je već registrovana.")
+            errors.append(_("E-mail adresa je već registrovana."))
 
         change_pw = bool(new or new2)
         if change_pw:
             if not current_user.check_password(current):
-                errors.append("Trenutna lozinka nije ispravna.")
+                errors.append(_("Trenutna lozinka nije ispravna."))
             errors.extend(_password_policy_errors(new))
             if new != new2:
-                errors.append("Nove lozinke se ne poklapaju.")
+                errors.append(_("Nove lozinke se ne poklapaju."))
 
         if errors:
             for e in errors:
                 flash(e, "danger")
             return render_template("auth/profile.html",
-                                   full_name=full_name, username=username, email=email)
+                                   full_name=full_name, username=username,
+                                   email=email, language=current_user.language or "sr")
+
+        language = request.form.get("language", "sr")
+        if language not in ("sr", "en"):
+            language = "sr"
 
         current_user.full_name = full_name
         current_user.username = username
         current_user.email = email
+        current_user.language = language
         if change_pw:
             current_user.set_password(new)
         db.session.commit()
-        flash("Profil je uspešno ažuriran.", "success")
+        flash(_("Profil je uspešno ažuriran."), "success")
         return redirect(url_for("auth.profile"))
 
     return render_template("auth/profile.html",
                            full_name=current_user.full_name,
                            username=current_user.username,
-                           email=current_user.email)
+                           email=current_user.email,
+                           language=current_user.language or "sr")
 
 
 # ---------------------------------------------------------------------------

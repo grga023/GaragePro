@@ -8,7 +8,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from .config import Config
-from .extensions import db, login_manager, csrf
+from .extensions import db, login_manager, csrf, babel
 from . import models, utils
 from .models import SERVICE_TYPES, SERVICE_TYPE_LABELS
 
@@ -35,6 +35,7 @@ def _ensure_additive_columns():
     insp = inspect(db.engine)
     wanted = {
         "global_mail_config": {"recipients": "TEXT"},
+        "users": {"language": "VARCHAR(5)"},
     }
     for table, columns in wanted.items():
         if table not in insp.get_table_names():
@@ -80,6 +81,18 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    # ---- Internationalisation (Serbian default, English optional) --------
+    def _select_locale():
+        from flask_login import current_user
+        from flask import session
+        if current_user.is_authenticated:
+            lang = getattr(current_user, "language", None)
+            if lang in ("sr", "en"):
+                return lang
+        return session.get("lang", app.config.get("BABEL_DEFAULT_LOCALE", "sr"))
+
+    babel.init_app(app, locale_selector=_select_locale)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -127,6 +140,7 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_globals():
         company = db.session.get(models.Company, 1)
+        from flask_babel import get_locale
         return {
             "company": company,
             "FUEL_LABELS": utils.FUEL_LABELS,
@@ -137,6 +151,8 @@ def create_app(config_class=Config):
             "SERVICE_TYPE_LABELS": SERVICE_TYPE_LABELS,
             "APP_ENV": app.config.get("APP_ENV", "prod"),
             "ASSET_VERSION": _asset_version(app),
+            "current_locale": str(get_locale() or "sr"),
+            "LANGUAGES": app.config.get("LANGUAGES", {"sr": "Srpski", "en": "English"}),
         }
 
     # ---- Log out users who were deactivated mid-session -----------------

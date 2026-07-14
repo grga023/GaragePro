@@ -3,7 +3,7 @@ import os
 
 from flask import (
     Blueprint, render_template, redirect, url_for, request, flash, current_app,
-    Response,
+    Response, session,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -92,6 +92,18 @@ def contact():
     except Exception as exc:  # noqa: BLE001
         current_app.logger.warning("Kontakt forma nije poslata: %s", exc)
         return redirect(f"{back}?sent=err#contact")
+
+
+@main_bp.route("/lang/<code>")
+def set_language(code):
+    """Switch UI language. Persists to the user's profile when logged in."""
+    if code not in ("sr", "en"):
+        code = "sr"
+    session["lang"] = code
+    if current_user.is_authenticated:
+        current_user.language = code
+        db.session.commit()
+    return redirect(request.referrer or url_for("main.index"))
 
 
 @main_bp.route("/robots.txt")

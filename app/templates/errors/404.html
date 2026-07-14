@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Nije pronađeno{% endblock %}
+{% block title %}{{ _('Nije pronađeno') }}{% endblock %}
 {% block content %}
 <div class="text-center mt-5">
   <h1 class="display-4">404</h1>
-  <p class="lead">Tražena stranica ne postoji.</p>
-  <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">Na početnu</a>
+  <p class="lead">{{ _('Tražena stranica ne postoji.') }}</p>
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">{{ _('Na početnu') }}</a>
 </div>
 {% endblock %}

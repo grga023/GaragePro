@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Fajl prevelik{% endblock %}
+{% block title %}{{ _('Fajl prevelik') }}{% endblock %}
 {% block content %}
 <div class="text-center mt-5">
-  <h1 class="display-5">Fajl je prevelik</h1>
-  <p class="lead">Maksimalna dozvoljena veličina otpremljene datoteke je 8 MB.</p>
-  <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">Na početnu</a>
+  <h1 class="display-5">{{ _('Fajl je prevelik') }}</h1>
+  <p class="lead">{{ _('Maksimalna dozvoljena veličina otpremljene datoteke je 8 MB.') }}</p>
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">{{ _('Na početnu') }}</a>
 </div>
 {% endblock %}

@@ -195,6 +195,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default=ROLE_WORKER)
     active = db.Column(db.Boolean, default=True)
     shop_id = db.Column(db.Integer, db.ForeignKey("shops.id"), nullable=True)
+    language = db.Column(db.String(5), default="sr")  # UI language: "sr" | "en"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     services = db.relationship("Service", backref="worker", lazy=True)

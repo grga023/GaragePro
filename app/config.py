@@ -71,6 +71,12 @@ class Config:
     # Locale / display
     CURRENCY = os.environ.get("CURRENCY", "RSD")
 
+    # Internationalisation (Flask-Babel). Serbian is the source/default language;
+    # English is offered as an option (per-user, set in the profile).
+    BABEL_DEFAULT_LOCALE = "sr"
+    BABEL_DEFAULT_TIMEZONE = "Europe/Belgrade"
+    LANGUAGES = {"sr": "Srpski", "en": "English"}
+
     # Public landing page: contact address (shown on the marketing page) and an
     # optional canonical site URL (used for SEO tags / sitemap). When SITE_URL is
     # empty the request host is used, so it also works behind the Cloudflare tunnel.
