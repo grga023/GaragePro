@@ -42,9 +42,32 @@
 
   <div class="mt-3">
     <label class="form-label">Primaoci žurnala</label>
+    {% if shop_users %}
+    <div class="border rounded p-2 mb-2">
+      <div class="text-muted small mb-1">Članovi servisa — štiklirajte kome se šalje:</div>
+      <div class="row g-1">
+        {% for u in shop_users %}
+        <div class="col-12 col-md-6">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="recipient_users"
+                   value="{{ u.email }}" id="ru{{ u.id }}"
+                   {{ 'checked' if u.email|lower in selected_emails }}>
+            <label class="form-check-label" for="ru{{ u.id }}">
+              {{ u.full_name }}
+              <span class="badge bg-{{ 'warning text-dark' if u.is_owner else 'secondary' }}">{{ ROLE_LABELS[u.role] }}</span>
+              <span class="text-muted small">{{ u.email }}</span>
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="form-text mb-2">Ovaj servis još nema članova sa e-mail adresom.</div>
+    {% endif %}
     <textarea name="recipients" class="form-control" rows="2"
-              placeholder="jedna ili više adresa, razdvojene zarezom ili u novom redu">{{ ec.recipients or '' }}</textarea>
-    <div class="form-text">Ako je prazno, žurnal se šalje vlasniku servisa (admin).</div>
+              placeholder="dodatne adrese van servisa (opciono), razdvojene zarezom ili u novom redu">{{ extra_recipients or '' }}</textarea>
+    <div class="form-text">Ako ništa nije izabrano, žurnal se šalje vlasniku servisa (admin).</div>
   </div>
 
   <div class="mt-3">

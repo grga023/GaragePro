@@ -342,9 +342,21 @@ def edit_shop(shop_id):
 @login_required
 @moderator_required
 def email_config(shop_id):
-    """Per-shop e-mail (SMTP) settings and automatic report schedule."""
+    """Per-shop automatic report schedule and recipient list.
+
+    SMTP delivery uses the single global mailbox (see ``mail_config``); here the
+    moderator only picks which shop members (and any extra addresses) receive
+    the automatic journals.
+    """
     shop = db.session.get(Shop, shop_id) or abort(404)
     ec = shop.email_config
+
+    # Shop members that can be picked as recipients (owners + workers).
+    shop_users = (User.query
+                  .filter(User.shop_id == shop.id,
+                          User.role != ROLE_MODERATOR,
+                          User.email.isnot(None), User.email != "")
+                  .order_by(User.full_name).all())
 
     if request.method == "POST":
         if ec is None:
@@ -352,17 +364,17 @@ def email_config(shop_id):
             db.session.add(ec)
 
         f = request.form
-        ec.smtp_host = f.get("smtp_host", "").strip()
-        ec.smtp_port = f.get("smtp_port", type=int) or 587
-        sec = f.get("smtp_security", "starttls")
-        ec.smtp_security = sec if sec in EmailConfig.SECURITY_CHOICES else "starttls"
-        ec.smtp_user = f.get("smtp_user", "").strip()
-        # Only overwrite the stored password when a new value is entered.
-        new_pw = f.get("smtp_password", "")
-        if new_pw:
-            ec.smtp_password = new_pw
-        ec.from_addr = f.get("from_addr", "").strip()
-        ec.recipients = f.get("recipients", "").strip()
+        # Merge the checked shop members with any extra typed-in addresses.
+        picked = request.form.getlist("recipient_users")
+        extra_raw = f.get("recipients", "")
+        merged = (",".join(picked) + "," + extra_raw).replace("\n", ",").replace(";", ",")
+        seen, out = set(), []
+        for addr in (a.strip() for a in merged.split(",")):
+            if addr and addr.lower() not in seen:
+                seen.add(addr.lower())
+                out.append(addr)
+        ec.recipients = "\n".join(out)
+
         ec.enabled = f.get("enabled") == "on"
         ec.send_daily = f.get("send_daily") == "on"
         ec.send_weekly = f.get("send_weekly") == "on"
@@ -371,8 +383,16 @@ def email_config(shop_id):
         flash("E-mail podešavanja su sačuvana.", "success")
         return redirect(url_for("moderator.email_config", shop_id=shop.id))
 
+    ec = ec or EmailConfig(shop_id=shop.id)
+    current = ec.recipient_list()
+    selected_emails = {a.lower() for a in current}
+    user_emails = {u.email.lower() for u in shop_users}
+    extra_recipients = "\n".join(a for a in current if a.lower() not in user_emails)
+
     return render_template("moderator/email_config.html",
-                           shop=shop, ec=ec or EmailConfig(shop_id=shop.id))
+                           shop=shop, ec=ec, shop_users=shop_users,
+                           selected_emails=selected_emails,
+                           extra_recipients=extra_recipients)
 
 
 @moderator_bp.route("/shop/<int:shop_id>/email/test", methods=["POST"])
