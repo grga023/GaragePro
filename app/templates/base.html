@@ -52,7 +52,9 @@
               <li><a class="dropdown-item" href="{{ url_for('reports.index') }}">📄 Žurnal</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="{{ url_for('auth.users') }}">👥 Korisnici</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('moderator.mail_config') }}">✉️ E-mail (globalno)</a></li>
               <li><a class="dropdown-item" href="{{ url_for('backup.index') }}">💾 Kopije</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('moderator.update') }}">⬆️ Ažuriranje</a></li>
             </ul>
           </li>
         {% else %}

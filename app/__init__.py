@@ -163,6 +163,14 @@ def create_app(config_class=Config):
     if not app.debug:
         app.logger.setLevel(logging.INFO)
 
+    # Ensure any newly-added tables exist (idempotent; SQLite-friendly, no
+    # migration needed for additive model changes such as GlobalMailConfig).
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as exc:  # noqa: BLE001
+            app.logger.warning("db.create_all() nije uspeo pri startu: %s", exc)
+
     # Optional background scheduler for automatic journals / backups
     if app.config.get("ENABLE_SCHEDULER"):
         from .scheduler import start_scheduler

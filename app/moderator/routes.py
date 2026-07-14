@@ -14,13 +14,17 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..models import (
-    Shop, User, Car, Service, Part, EmailConfig,
+    Shop, User, Car, Service, Part, EmailConfig, GlobalMailConfig,
     ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER,
     SERVICE_TYPES, SERVICE_TYPE_LABELS,
 )
 from ..security import moderator_required
 from ..utils import save_image, period_range, SR_MONTHS
 from ..email_utils import send_email
+from ..updater import (
+    current_version, list_tags, is_git_repo, validate_ref, perform_update,
+    service_name,
+)
 
 moderator_bp = Blueprint("moderator", __name__, url_prefix="/moderator")
 
@@ -375,15 +379,17 @@ def email_config(shop_id):
 @login_required
 @moderator_required
 def email_test(shop_id):
-    """Send a test e-mail using the shop's saved SMTP settings."""
+    """Send a test e-mail using the global mailbox settings."""
     shop = db.session.get(Shop, shop_id) or abort(404)
     ec = shop.email_config
-    if not ec or not ec.is_configured:
-        flash("Prvo sačuvajte SMTP podešavanja (SMTP host je obavezan).", "danger")
+    gcfg = GlobalMailConfig.get()
+    if not gcfg.smtp_host:
+        flash("Globalni SMTP nalog nije podešen. Otvorite ✉️ E-mail (globalno).",
+              "danger")
         return redirect(url_for("moderator.email_config", shop_id=shop.id))
 
     test_to = request.form.get("test_to", "").strip()
-    recipients = [test_to] if test_to else ec.recipient_list()
+    recipients = [test_to] if test_to else (ec.recipient_list() if ec else [])
     if not recipients:
         owners = User.query.filter_by(shop_id=shop.id, role=ROLE_ADMIN, active=True).all()
         recipients = [o.email for o in owners if o.email]
@@ -394,7 +400,7 @@ def email_test(shop_id):
     html = render_template("email/test.html", shop=shop)
     try:
         send_email(recipients, f"GaragePro — test e-mail ({shop.name})", html,
-                   settings=ec.smtp_settings())
+                   settings=gcfg.smtp_settings())
         flash(f"Test e-mail je poslat na: {', '.join(recipients)}", "success")
     except Exception as exc:  # noqa: BLE001
         flash(f"Slanje test e-maila nije uspelo: {exc}", "danger")
@@ -499,3 +505,91 @@ def dashboard_export():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename=dashboard_{period_start}_{period_end}.csv"},
     )
+
+
+# ─────────────────────────── Global e-mail (single mailbox) ────────────────
+@moderator_bp.route("/mail", methods=["GET", "POST"])
+@login_required
+@moderator_required
+def mail_config():
+    """One SMTP mailbox shared by every service. Moderator-only."""
+    cfg = GlobalMailConfig.get()
+
+    if request.method == "POST":
+        f = request.form
+        cfg.smtp_host = f.get("smtp_host", "").strip()
+        cfg.smtp_port = f.get("smtp_port", type=int) or 587
+        sec = f.get("smtp_security", "starttls")
+        cfg.smtp_security = sec if sec in GlobalMailConfig.SECURITY_CHOICES else "starttls"
+        cfg.smtp_user = f.get("smtp_user", "").strip()
+        # Only overwrite the stored password when a new value is entered.
+        new_pw = f.get("smtp_password", "")
+        if new_pw:
+            cfg.smtp_password = new_pw
+        cfg.from_addr = f.get("from_addr", "").strip()
+        cfg.enabled = f.get("enabled") == "on"
+        db.session.commit()
+        flash("E-mail podešavanja su sačuvana.", "success")
+        return redirect(url_for("moderator.mail_config"))
+
+    return render_template("moderator/mail_config.html", cfg=cfg)
+
+
+@moderator_bp.route("/mail/test", methods=["POST"])
+@login_required
+@moderator_required
+def mail_test():
+    """Send a test e-mail using the global mailbox settings."""
+    cfg = GlobalMailConfig.get()
+    if not cfg.smtp_host:
+        flash("Prvo sačuvajte SMTP podešavanja (SMTP host je obavezan).", "danger")
+        return redirect(url_for("moderator.mail_config"))
+
+    test_to = request.form.get("test_to", "").strip() or cfg.from_addr or cfg.smtp_user
+    if not test_to:
+        flash("Unesite test adresu.", "danger")
+        return redirect(url_for("moderator.mail_config"))
+
+    html = render_template("email/test.html", shop=None)
+    try:
+        send_email([test_to], "GaragePro — test e-mail", html,
+                   settings=cfg.smtp_settings())
+        flash(f"Test e-mail je poslat na: {test_to}", "success")
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Slanje test e-maila nije uspelo: {exc}", "danger")
+    return redirect(url_for("moderator.mail_config"))
+
+
+# ─────────────────────────────── One-click update ─────────────────────────
+@moderator_bp.route("/update")
+@login_required
+@moderator_required
+def update():
+    """Show current version and a form to update to a GitHub tag."""
+    return render_template(
+        "moderator/update.html",
+        version=current_version(),
+        is_git=is_git_repo(),
+        service=service_name(),
+        tags=list_tags(),
+    )
+
+
+@moderator_bp.route("/update/run", methods=["POST"])
+@login_required
+@moderator_required
+def update_run():
+    """Fetch and check out the requested tag, then restart the service."""
+    ref = request.form.get("ref", "").strip()
+    if not validate_ref(ref):
+        flash("Neispravna oznaka. Dozvoljeni su slova, brojevi i znaci . _ - /.",
+              "danger")
+        return redirect(url_for("moderator.update"))
+
+    try:
+        perform_update(ref)
+        flash(f"Ažuriranje na „{ref}“ je pokrenuto. Servis se restartuje za "
+              f"nekoliko sekundi — osvežite stranicu.", "success")
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Ažuriranje nije uspelo: {exc}", "danger")
+    return redirect(url_for("moderator.update"))

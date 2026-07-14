@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Ažuriranje sistema{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">⬆️ Ažuriranje sistema</h4>
+  <a href="{{ url_for('moderator.dashboard') }}" class="btn btn-sm btn-outline-primary">← Dashboard</a>
+</div>
+
+<div class="card card-body mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <div class="text-muted small">Trenutna verzija</div>
+      <div class="fs-5"><code>{{ version }}</code></div>
+    </div>
+    <span class="badge bg-{{ 'success' if is_git else 'secondary' }}">
+      {{ 'Git kopija' if is_git else 'Nije Git kopija' }}
+    </span>
+  </div>
+</div>
+
+{% if not is_git %}
+<div class="alert alert-warning">
+  Aplikacija nije Git kopija, pa automatsko ažuriranje nije moguće na ovom serveru.
+</div>
+{% else %}
+<form method="post" action="{{ url_for('moderator.update_run') }}" class="card card-body mb-3"
+      onsubmit="return confirm('Ažurirati sistem i restartovati servis? Aplikacija će biti nedostupna nekoliko sekundi.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="form-label">GitHub oznaka (tag)</label>
+  <div class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <input name="ref" class="form-control" list="tagList" required
+             placeholder="npr. v1.2.0" autocomplete="off"
+             pattern="[A-Za-z0-9][A-Za-z0-9._/\-]*">
+      {% if tags %}
+      <datalist id="tagList">
+        {% for t in tags %}<option value="{{ t }}"></option>{% endfor %}
+      </datalist>
+      {% endif %}
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-danger">⬆️ Ažuriraj i restartuj</button>
+    </div>
+  </div>
+  <div class="form-text mt-2">
+    Nalepite oznaku izdanja (npr. <code>v1.2.0</code>). Sistem će preuzeti taj kod,
+    instalirati zavisnosti, ažurirati bazu i restartovati servis
+    (<code>{{ service }}</code>).
+  </div>
+</form>
+{% endif %}
+{% endblock %}

@@ -12,7 +12,21 @@ from flask import current_app
 
 
 def global_settings() -> dict:
-    """SMTP settings derived from the global app config (fallback)."""
+    """SMTP settings for the single, system-wide mailbox.
+
+    Prefers the moderator-managed global mailbox stored in the database
+    (``GlobalMailConfig``); falls back to the ``.env`` / app-config SMTP values
+    when it has not been configured yet.
+    """
+    try:
+        from .extensions import db
+        from .models import GlobalMailConfig
+        row = db.session.get(GlobalMailConfig, 1)
+        if row and row.is_configured:
+            return row.smtp_settings()
+    except Exception:  # noqa: BLE001 - DB may be unavailable during setup
+        pass
+
     cfg = current_app.config
     port = int(cfg.get("SMTP_PORT", 587) or 587)
     if port == 465:

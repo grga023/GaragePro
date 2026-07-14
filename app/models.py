@@ -119,6 +119,60 @@ class EmailConfig(db.Model):
         }
 
 
+class GlobalMailConfig(db.Model):
+    """System-wide (single) SMTP mailbox used to send **all** e-mails.
+
+    Managed only by system moderators.  There is exactly one row (``id == 1``):
+    one mailbox shared by every service (shop).  Per-shop ``EmailConfig`` still
+    controls the automatic schedule and recipient lists, but the SMTP account
+    used to actually deliver the mail is this single global mailbox.
+
+    Note: the SMTP password is stored as-is (plain text) in the local SQLite
+    database, consistent with the app's existing ``.env`` based SMTP_PASSWORD.
+    """
+
+    __tablename__ = "global_mail_config"
+
+    SECURITY_CHOICES = ("none", "starttls", "ssl")
+
+    id = db.Column(db.Integer, primary_key=True)
+    smtp_host = db.Column(db.String(255))
+    smtp_port = db.Column(db.Integer, default=587)
+    smtp_security = db.Column(db.String(10), default="starttls")  # none|starttls|ssl
+    smtp_user = db.Column(db.String(255))
+    smtp_password = db.Column(db.String(255))
+    from_addr = db.Column(db.String(255))
+    enabled = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    @property
+    def is_configured(self) -> bool:
+        """True when at least an SMTP host is set and sending is enabled."""
+        return bool(self.smtp_host) and bool(self.enabled)
+
+    def smtp_settings(self) -> dict:
+        """Settings dict consumed by ``email_utils.send_email``."""
+        return {
+            "host": self.smtp_host,
+            "port": self.smtp_port or 587,
+            "security": self.smtp_security or "starttls",
+            "user": self.smtp_user,
+            "password": self.smtp_password,
+            "from_addr": self.from_addr or self.smtp_user,
+        }
+
+    @classmethod
+    def get(cls) -> "GlobalMailConfig":
+        """Return the single settings row, creating an empty one if needed."""
+        row = db.session.get(cls, 1)
+        if row is None:
+            row = cls(id=1)
+            db.session.add(row)
+            db.session.commit()
+        return row
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 

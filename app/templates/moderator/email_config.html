@@ -7,8 +7,10 @@
 </div>
 
 <p class="text-muted">
-  Svaki servis koristi <strong>sopstveni</strong> SMTP nalog i listu primalaca. Ovde
-  podešavate slanje dnevnih, nedeljnih i mesečnih žurnala za ovaj servis.
+  Slanje koristi <strong>jedan zajednički</strong> (globalni) SMTP nalog za sve servise.
+  Ovde podešavate samo raspored (dnevni / nedeljni / mesečni žurnal) i listu primalaca
+  za ovaj servis.
+  <a href="{{ url_for('moderator.mail_config') }}">✉️ Podesi globalni SMTP nalog →</a>
 </p>
 
 <form method="post" class="card card-body mb-3">
@@ -20,44 +22,6 @@
     <label class="form-check-label" for="enabled">Automatsko slanje uključeno</label>
   </div>
 
-  <h6 class="text-muted text-uppercase small mb-2">SMTP nalog</h6>
-  <div class="row g-3">
-    <div class="col-md-8">
-      <label class="form-label">SMTP host</label>
-      <input name="smtp_host" class="form-control" value="{{ ec.smtp_host or '' }}"
-             placeholder="npr. smtp.gmail.com">
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Port</label>
-      <input name="smtp_port" type="number" class="form-control" value="{{ ec.smtp_port or 587 }}">
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Bezbednost</label>
-      <select name="smtp_security" class="form-select">
-        {% set sec = ec.smtp_security or 'starttls' %}
-        <option value="none"     {{ 'selected' if sec == 'none' }}>Bez</option>
-        <option value="starttls" {{ 'selected' if sec == 'starttls' }}>STARTTLS</option>
-        <option value="ssl"      {{ 'selected' if sec == 'ssl' }}>SSL/TLS</option>
-      </select>
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Korisničko ime (SMTP)</label>
-      <input name="smtp_user" class="form-control" value="{{ ec.smtp_user or '' }}"
-             autocomplete="off" placeholder="npr. servis@gmail.com">
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Lozinka (SMTP)</label>
-      <input name="smtp_password" type="password" class="form-control" autocomplete="new-password"
-             placeholder="{{ '•••••••• (sačuvana — ostavite prazno da zadržite)' if ec.smtp_password else '' }}">
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Adresa pošiljaoca (From)</label>
-      <input name="from_addr" type="email" class="form-control" value="{{ ec.from_addr or '' }}"
-             placeholder="npr. servis@gmail.com">
-    </div>
-  </div>
-
-  <hr class="my-4">
   <h6 class="text-muted text-uppercase small mb-2">Automatski žurnali</h6>
   <div class="row">
     <div class="col-auto">

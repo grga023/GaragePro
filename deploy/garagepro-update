@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+#
+# GaragePro one-click updater — runs as ROOT via a scoped sudo rule.
+#
+#   garagepro-update <git-ref>
+#
+# The application (running as the unprivileged 'garagepro' user) invokes this
+# through /etc/sudoers.d/garagepro-update. Root is used because the service
+# account has no GitHub access and cannot restart the systemd unit, while root
+# has both. The <git-ref> is validated by the app AND re-validated here.
+#
+set -euo pipefail
+
+APP_DIR="${GARAGEPRO_DIR:-/opt/garagepro}"
+SERVICE="${GARAGEPRO_SERVICE:-garagepro}"
+RUN_USER="${GARAGEPRO_USER:-garagepro}"
+VENV_PY="$APP_DIR/venv/bin/python"
+
+REF="${1:-}"
+
+# Strict allow-list: start alphanumeric, then word chars plus . _ - / (max 100).
+if [[ ! "$REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ ]]; then
+  echo "Neispravna oznaka (tag): '$REF'" >&2
+  exit 2
+fi
+
+if [[ ! -d "$APP_DIR/.git" ]]; then
+  echo "$APP_DIR nije Git kopija." >&2
+  exit 3
+fi
+
+cd "$APP_DIR"
+
+echo "== fetch =="
+git -c safe.directory="$APP_DIR" fetch --tags --force --prune origin
+
+echo "== checkout $REF =="
+git -c safe.directory="$APP_DIR" -c advice.detachedHead=false checkout --force "$REF"
+
+echo "== fix ownership =="
+chown -R "$RUN_USER":"$RUN_USER" "$APP_DIR"
+
+echo "== pip install =="
+if [[ -f requirements.txt ]]; then
+  runuser -u "$RUN_USER" -- "$VENV_PY" -m pip install --no-input -r requirements.txt
+fi
+
+# The app creates any new tables on startup (db.create_all), so the restart
+# below is enough to apply additive schema changes.
+echo "== restart (deferred) =="
+if command -v systemd-run >/dev/null 2>&1; then
+  # Restart a couple of seconds later so the triggering HTTP request finishes.
+  systemd-run --on-active=2 --collect systemctl restart "$SERVICE" >/dev/null 2>&1
+else
+  setsid bash -c "sleep 2; systemctl restart '$SERVICE'" >/dev/null 2>&1 &
+fi
+
+echo "OK: ažurirano na '$REF'; servis '$SERVICE' se restartuje."

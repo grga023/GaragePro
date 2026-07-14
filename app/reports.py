@@ -255,15 +255,9 @@ def send():
                f"({sr_date(journal['start'])} - {sr_date(journal['end'])})")
     html = render_template("email/journal.html", journal=journal)
 
-    # Prefer the target shop's own SMTP config; fall back to global .env config.
-    settings = None
-    if sel_shop_id:
-        ec = EmailConfig.query.filter_by(shop_id=sel_shop_id).first()
-        if ec and ec.is_configured:
-            settings = ec.smtp_settings()
-
     try:
-        send_email(recipients, subject, html, settings=settings)
+        # All services share one global mailbox (settings=None -> global_settings()).
+        send_email(recipients, subject, html)
         flash(f"Žurnal je poslat na: {', '.join(recipients)}", "success")
     except Exception as exc:  # noqa: BLE001
         flash(f"Slanje e-maila nije uspelo: {exc}", "danger")

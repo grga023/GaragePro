@@ -49,7 +49,8 @@ def _dispatch(app, period):
                        f"({sr_date(journal['start'])} - {sr_date(journal['end'])})")
             html = render_template("email/journal.html", journal=journal)
             try:
-                send_email(recipients, subject, html, settings=ec.smtp_settings())
+                # Single global mailbox (settings=None -> global_settings()).
+                send_email(recipients, subject, html)
                 app.logger.info("Žurnal (%s) poslat za servis %s.", period, shop.name)
             except Exception as exc:  # noqa: BLE001
                 app.logger.warning("Žurnal za servis %s nije poslat: %s", shop.name, exc)

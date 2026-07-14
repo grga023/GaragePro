@@ -1,0 +1,6 @@
+# Allow the unprivileged GaragePro service account to run ONLY the update
+# helper as root (no password). The helper strictly validates its argument.
+#
+# Install to /etc/sudoers.d/garagepro-update  (mode 0440), then validate with:
+#   visudo -cf /etc/sudoers.d/garagepro-update
+garagepro ALL=(root) NOPASSWD: /usr/local/bin/garagepro-update
