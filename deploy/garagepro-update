@@ -31,6 +31,15 @@ fi
 
 cd "$APP_DIR"
 
+# The private GitHub remote is reached over SSH using root's credentials.
+# 'sudo' may hand us the invoking user's HOME, and the service sandbox can hide
+# /root, so pin HOME to root's home (needs ProtectHome=no in the unit drop-in)
+# and use a non-interactive SSH that trusts new host keys.
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  export HOME=/root
+fi
+export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+
 echo "== fetch =="
 git -c safe.directory="$APP_DIR" fetch --tags --force --prune origin
 
