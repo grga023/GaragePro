@@ -3,6 +3,7 @@ import os
 
 from flask import (
     Blueprint, render_template, redirect, url_for, request, flash, current_app,
+    Response,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -12,11 +13,92 @@ from .extensions import db
 from .models import Company, Car, Service, Shop, SERVICE_TYPES, SERVICE_TYPE_LABELS
 from .security import admin_required, scoped_query
 from .utils import save_image, period_range
+from .landing_content import LANDING
 
 main_bp = Blueprint("main", __name__)
 
 
+def _site_url() -> str:
+    """Canonical base URL for SEO tags (config override or request host)."""
+    configured = current_app.config.get("SITE_URL")
+    if configured:
+        return configured
+    return f"https://{request.host}"
+
+
+def _render_landing(lang: str):
+    from datetime import date
+    content = LANDING.get(lang, LANDING["sr"])
+    site = _site_url()
+    return render_template(
+        "landing.html",
+        c=content,
+        lang=lang,
+        site_url=site,
+        contact_email=current_app.config.get("CONTACT_EMAIL", ""),
+        now_year=date.today().year,
+    )
+
+
 @main_bp.route("/")
+def index():
+    """Public landing page (Serbian). Logged-in users go straight to the app."""
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    return _render_landing("sr")
+
+
+@main_bp.route("/en")
+def index_en():
+    """Public landing page (English)."""
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    return _render_landing("en")
+
+
+@main_bp.route("/robots.txt")
+def robots_txt():
+    body = (
+        "User-agent: *\n"
+        "Allow: /$\n"
+        "Allow: /en\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /moderator\n"
+        "Disallow: /reports\n"
+        "Disallow: /services\n"
+        "Disallow: /cars\n"
+        "Disallow: /auth\n"
+        "Disallow: /media\n"
+        f"Sitemap: {_site_url()}/sitemap.xml\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@main_bp.route("/sitemap.xml")
+def sitemap_xml():
+    site = _site_url()
+    urls = [
+        (f"{site}/", "sr", f"{site}/en"),
+        (f"{site}/en", "en", f"{site}/"),
+    ]
+    parts = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+             'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
+    for loc, lang, alt in urls:
+        other = "en" if lang == "sr" else "sr"
+        parts.append("  <url>")
+        parts.append(f"    <loc>{loc}</loc>")
+        parts.append(f'    <xhtml:link rel="alternate" hreflang="{lang}" href="{loc}"/>')
+        parts.append(f'    <xhtml:link rel="alternate" hreflang="{other}" href="{alt}"/>')
+        parts.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{site}/"/>')
+        parts.append("    <changefreq>weekly</changefreq>")
+        parts.append("    <priority>1.0</priority>")
+        parts.append("  </url>")
+    parts.append("</urlset>")
+    return Response("\n".join(parts), mimetype="application/xml")
+
+
+@main_bp.route("/dashboard")
 @login_required
 def dashboard():
     if current_user.is_moderator:

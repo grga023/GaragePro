@@ -71,6 +71,12 @@ class Config:
     # Locale / display
     CURRENCY = os.environ.get("CURRENCY", "RSD")
 
+    # Public landing page: contact address (shown on the marketing page) and an
+    # optional canonical site URL (used for SEO tags / sitemap). When SITE_URL is
+    # empty the request host is used, so it also works behind the Cloudflare tunnel.
+    CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "kontakt@garagepro.rs")
+    SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
+
     # ---- Security / hardening ----
     # Set SECURE_COOKIES=true when serving over HTTPS.
     SESSION_COOKIE_HTTPONLY = True
