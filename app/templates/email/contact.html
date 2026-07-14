@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="sr">
+<body style="font-family: Arial, sans-serif; color:#212529;">
+  <h2>GaragePro — novi upit za demo</h2>
+  <table cellpadding="6" style="border-collapse:collapse;font-size:14px;">
+    <tr><td style="color:#6c757d;">Ime:</td><td><strong>{{ name }}</strong></td></tr>
+    <tr><td style="color:#6c757d;">E-mail:</td><td><a href="mailto:{{ email }}">{{ email }}</a></td></tr>
+    {% if phone %}<tr><td style="color:#6c757d;">Telefon:</td><td>{{ phone }}</td></tr>{% endif %}
+    {% if shop %}<tr><td style="color:#6c757d;">Servis:</td><td>{{ shop }}</td></tr>{% endif %}
+  </table>
+  <p style="color:#6c757d;margin:16px 0 4px;">Poruka:</p>
+  <p style="white-space:pre-wrap;background:#f6f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">{{ message }}</p>
+  <hr>
+  <p style="color:#6c757d; font-size:12px;">Poslato sa GaragePro landing stranice. Odgovorite direktno na ovaj e-mail da kontaktirate pošiljaoca.</p>
+</body>
+</html>

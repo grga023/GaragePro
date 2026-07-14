@@ -109,8 +109,20 @@ LANDING = {
         ],
         "cta": {
             "title": "Spremni da digitalizujete servis?",
-            "subtitle": "Zatražite besplatan demo i vidite GaragePro na delu.",
+            "subtitle": "Ostavite podatke i javljamo se sa besplatnim demoom.",
             "button": "Zatraži demo",
+        },
+        "contact": {
+            "name": "Ime i prezime",
+            "email": "E-mail",
+            "phone": "Telefon (opciono)",
+            "shop": "Naziv servisa (opciono)",
+            "message": "Poruka",
+            "message_ph": "Recite nam ponešto o vašem servisu…",
+            "submit": "Pošalji upit",
+            "ok": "Hvala! Vaš upit je poslat — javljamo se uskoro.",
+            "err": "Došlo je do greške. Molimo pokušajte ponovo za koji trenutak.",
+            "privacy": "Vaše podatke ne delimo ni sa kim.",
         },
         "footer": {
             "tagline": "Softver za moderne auto servise.",
@@ -221,8 +233,20 @@ LANDING = {
         ],
         "cta": {
             "title": "Ready to digitise your shop?",
-            "subtitle": "Request a free demo and see GaragePro in action.",
+            "subtitle": "Leave your details and we'll get back to you with a free demo.",
             "button": "Request a demo",
+        },
+        "contact": {
+            "name": "Full name",
+            "email": "E-mail",
+            "phone": "Phone (optional)",
+            "shop": "Shop name (optional)",
+            "message": "Message",
+            "message_ph": "Tell us a bit about your shop…",
+            "submit": "Send request",
+            "ok": "Thanks! Your request was sent — we'll be in touch soon.",
+            "err": "Something went wrong. Please try again in a moment.",
+            "privacy": "We never share your data with anyone.",
         },
         "footer": {
             "tagline": "Software for modern auto repair shops.",

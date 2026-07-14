@@ -46,7 +46,7 @@ def global_settings() -> dict:
 
 
 def send_email(to_addrs, subject: str, html_body: str, settings: dict = None,
-               bcc=None) -> None:
+               bcc=None, reply_to: str = None) -> None:
     s = settings or global_settings()
     host = s.get("host")
     if not host:
@@ -74,6 +74,8 @@ def send_email(to_addrs, subject: str, html_body: str, settings: dict = None,
     msg["Subject"] = subject
     msg["From"] = from_addr
     msg["To"] = ", ".join(to_addrs) if to_addrs else from_addr
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     port = int(s.get("port") or 587)

@@ -37,6 +37,7 @@ def _render_landing(lang: str):
         site_url=site,
         contact_email=current_app.config.get("CONTACT_EMAIL", ""),
         now_year=date.today().year,
+        sent=request.args.get("sent"),
     )
 
 
@@ -54,6 +55,43 @@ def index_en():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
     return _render_landing("en")
+
+
+@main_bp.route("/contact", methods=["POST"])
+def contact():
+    """Handle the landing-page demo request form and e-mail it to CONTACT_EMAIL."""
+    from .email_utils import send_email
+
+    lang = request.form.get("lang", "sr")
+    back = url_for("main.index_en") if lang == "en" else url_for("main.index")
+
+    # Honeypot: bots fill the hidden 'website' field — pretend success, drop it.
+    if request.form.get("website"):
+        return redirect(f"{back}?sent=ok#contact")
+
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    shop = request.form.get("shop", "").strip()
+    message = request.form.get("message", "").strip()
+
+    if not name or "@" not in email or not message:
+        return redirect(f"{back}?sent=err#contact")
+
+    to_addr = current_app.config.get("CONTACT_EMAIL")
+    if not to_addr:
+        current_app.logger.warning("Kontakt forma: CONTACT_EMAIL nije podešen.")
+        return redirect(f"{back}?sent=err#contact")
+
+    html = render_template("email/contact.html", name=name, email=email,
+                           phone=phone, shop=shop, message=message)
+    try:
+        send_email([to_addr], f"GaragePro — upit za demo: {name}", html,
+                   reply_to=email)
+        return redirect(f"{back}?sent=ok#contact")
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.warning("Kontakt forma nije poslata: %s", exc)
+        return redirect(f"{back}?sent=err#contact")
 
 
 @main_bp.route("/robots.txt")
