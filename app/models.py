@@ -143,6 +143,7 @@ class GlobalMailConfig(db.Model):
     smtp_password = db.Column(db.String(255))
     from_addr = db.Column(db.String(255))
     enabled = db.Column(db.Boolean, default=True)
+    recipients = db.Column(db.Text)  # global BCC list (comma / newline / ; separated)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)
 
@@ -150,6 +151,16 @@ class GlobalMailConfig(db.Model):
     def is_configured(self) -> bool:
         """True when at least an SMTP host is set and sending is enabled."""
         return bool(self.smtp_host) and bool(self.enabled)
+
+    def recipient_list(self) -> list:
+        """Parsed, de-duplicated global recipient e-mail addresses."""
+        raw = (self.recipients or "").replace("\n", ",").replace(";", ",")
+        seen, out = set(), []
+        for addr in (a.strip() for a in raw.split(",")):
+            if addr and addr.lower() not in seen:
+                seen.add(addr.lower())
+                out.append(addr)
+        return out
 
     def smtp_settings(self) -> dict:
         """Settings dict consumed by ``email_utils.send_email``."""

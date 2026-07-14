@@ -532,8 +532,19 @@ def dashboard_export():
 @login_required
 @moderator_required
 def mail_config():
-    """One SMTP mailbox shared by every service. Moderator-only."""
+    """One SMTP mailbox shared by every service. Moderator-only.
+
+    Also holds the global report recipient list: reports go out with the sender
+    in ``To`` and every recipient in ``BCC`` (so recipients see only the sender).
+    """
     cfg = GlobalMailConfig.get()
+
+    # All shop members (owners + workers) that can be picked as recipients.
+    members = (User.query
+               .filter(User.role != ROLE_MODERATOR,
+                       User.email.isnot(None), User.email != "")
+               .order_by(User.shop_id, User.full_name).all())
+    shop_names = {s.id: s.name for s in Shop.query.all()}
 
     if request.method == "POST":
         f = request.form
@@ -548,11 +559,30 @@ def mail_config():
             cfg.smtp_password = new_pw
         cfg.from_addr = f.get("from_addr", "").strip()
         cfg.enabled = f.get("enabled") == "on"
+
+        # Merge checked members with any extra typed-in addresses.
+        picked = request.form.getlist("recipient_users")
+        merged = (",".join(picked) + "," + f.get("recipients", "")) \
+            .replace("\n", ",").replace(";", ",")
+        seen, out = set(), []
+        for addr in (a.strip() for a in merged.split(",")):
+            if addr and addr.lower() not in seen:
+                seen.add(addr.lower())
+                out.append(addr)
+        cfg.recipients = "\n".join(out)
+
         db.session.commit()
         flash("E-mail podešavanja su sačuvana.", "success")
         return redirect(url_for("moderator.mail_config"))
 
-    return render_template("moderator/mail_config.html", cfg=cfg)
+    current = cfg.recipient_list()
+    selected_emails = {a.lower() for a in current}
+    member_emails = {u.email.lower() for u in members}
+    extra_recipients = "\n".join(a for a in current if a.lower() not in member_emails)
+
+    return render_template("moderator/mail_config.html", cfg=cfg, members=members,
+                           shop_names=shop_names, selected_emails=selected_emails,
+                           extra_recipients=extra_recipients)
 
 
 @moderator_bp.route("/mail/test", methods=["POST"])

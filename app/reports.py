@@ -12,11 +12,11 @@ from flask import (
 from flask_login import login_required, current_user
 
 from .extensions import db
-from .models import (Car, Service, User, Shop, EmailConfig,
+from .models import (Car, Service, User, Shop, EmailConfig, GlobalMailConfig,
                     ROLE_ADMIN, ROLE_MODERATOR, SERVICE_TYPES, SERVICE_TYPE_LABELS)
 from .security import admin_required, scoped_query
 from .utils import period_range, PERIOD_LABELS, sr_date, SR_MONTHS
-from .email_utils import send_email
+from .email_utils import send_email, sender_address
 from sqlalchemy.orm import selectinload
 
 reports_bp = Blueprint("reports", __name__)
@@ -255,10 +255,21 @@ def send():
                f"({sr_date(journal['start'])} - {sr_date(journal['end'])})")
     html = render_template("email/journal.html", journal=journal)
 
+    # Add the global recipient list; send from the shared mailbox with everyone
+    # in BCC (recipients see only the sender), so the sender always gets a copy.
+    gcfg = db.session.get(GlobalMailConfig, 1)
+    global_recipients = gcfg.recipient_list() if gcfg else []
+    all_recipients = sorted(set(r for r in (recipients + global_recipients) if r))
+    sender = sender_address()
+    if sender:
+        to_addr, bcc = [sender], all_recipients
+    else:
+        to_addr, bcc = all_recipients, None
+
     try:
-        # All services share one global mailbox (settings=None -> global_settings()).
-        send_email(recipients, subject, html)
-        flash(f"Žurnal je poslat na: {', '.join(recipients)}", "success")
+        send_email(to_addr, subject, html, bcc=bcc)
+        shown = all_recipients or to_addr
+        flash(f"Žurnal je poslat na: {', '.join(shown)}", "success")
     except Exception as exc:  # noqa: BLE001
         flash(f"Slanje e-maila nije uspelo: {exc}", "danger")
 

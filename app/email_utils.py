@@ -45,7 +45,8 @@ def global_settings() -> dict:
     }
 
 
-def send_email(to_addrs, subject: str, html_body: str, settings: dict = None) -> None:
+def send_email(to_addrs, subject: str, html_body: str, settings: dict = None,
+               bcc=None) -> None:
     s = settings or global_settings()
     host = s.get("host")
     if not host:
@@ -53,15 +54,26 @@ def send_email(to_addrs, subject: str, html_body: str, settings: dict = None) ->
 
     if isinstance(to_addrs, str):
         to_addrs = [to_addrs]
-    to_addrs = [a for a in to_addrs if a]
-    if not to_addrs:
+    to_addrs = [a for a in (to_addrs or []) if a]
+    if isinstance(bcc, str):
+        bcc = [bcc]
+    # BCC recipients: kept out of the headers, only in the SMTP envelope, so
+    # recipients cannot see each other — they see only the sender/To.
+    to_lower = {a.lower() for a in to_addrs}
+    bcc = [a for a in (bcc or []) if a and a.lower() not in to_lower]
+    # De-duplicate BCC case-insensitively.
+    seen = set()
+    bcc = [a for a in bcc if not (a.lower() in seen or seen.add(a.lower()))]
+
+    envelope = to_addrs + bcc
+    if not envelope:
         raise RuntimeError("Primalac nema podešenu e-mail adresu.")
 
     from_addr = s.get("from_addr") or s.get("user") or host
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = from_addr
-    msg["To"] = ", ".join(to_addrs)
+    msg["To"] = ", ".join(to_addrs) if to_addrs else from_addr
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     port = int(s.get("port") or 587)
@@ -75,9 +87,15 @@ def send_email(to_addrs, subject: str, html_body: str, settings: dict = None) ->
     try:
         if s.get("user"):
             server.login(s["user"], s.get("password") or "")
-        server.sendmail(from_addr, to_addrs, msg.as_string())
+        server.sendmail(from_addr, envelope, msg.as_string())
     finally:
         try:
             server.quit()
         except Exception:
             pass
+
+
+def sender_address(settings: dict = None) -> str:
+    """The 'From' / sender address used for reports (the global mailbox)."""
+    s = settings or global_settings()
+    return s.get("from_addr") or s.get("user") or ""

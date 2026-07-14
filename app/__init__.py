@@ -24,6 +24,29 @@ def _asset_version(app):
         return 0
 
 
+def _ensure_additive_columns():
+    """Add columns introduced after a table was first created.
+
+    ``db.create_all`` only creates missing *tables*, never new *columns*. This
+    performs the few idempotent ``ALTER TABLE ... ADD COLUMN`` statements needed
+    for additive model changes on the local SQLite database.
+    """
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    wanted = {
+        "global_mail_config": {"recipients": "TEXT"},
+    }
+    for table, columns in wanted.items():
+        if table not in insp.get_table_names():
+            continue
+        existing = {c["name"] for c in insp.get_columns(table)}
+        for name, coltype in columns.items():
+            if name not in existing:
+                db.session.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN {name} {coltype}"))
+    db.session.commit()
+
+
 # Apply pragmatic SQLite settings on every new connection: WAL journaling for
 # better concurrency, enforced foreign keys, and a busy timeout so the Pi does
 # not throw "database is locked" under light concurrent use.
@@ -168,6 +191,7 @@ def create_app(config_class=Config):
     with app.app_context():
         try:
             db.create_all()
+            _ensure_additive_columns()
         except Exception as exc:  # noqa: BLE001
             app.logger.warning("db.create_all() nije uspeo pri startu: %s", exc)
 

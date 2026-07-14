@@ -18,11 +18,15 @@ def _dispatch(app, period):
     shop owner's e-mail when no recipients are configured).
     """
     from .reports import compose_journal
-    from .models import EmailConfig, User, ROLE_ADMIN
-    from .email_utils import send_email
+    from .models import EmailConfig, User, GlobalMailConfig, ROLE_ADMIN
+    from .email_utils import send_email, sender_address
+    from .extensions import db
 
     ref = date.today()
     with app.app_context():
+        gcfg = db.session.get(GlobalMailConfig, 1)
+        global_recipients = gcfg.recipient_list() if gcfg else []
+        sender = sender_address()
         configs = EmailConfig.query.filter_by(enabled=True).all()
         for ec in configs:
             if not ec.wants(period) or not ec.is_configured:
@@ -36,21 +40,27 @@ def _dispatch(app, period):
                 owners = User.query.filter_by(
                     shop_id=shop.id, role=ROLE_ADMIN, active=True).all()
                 recipients = [o.email for o in owners if o.email]
-            if not recipients:
-                app.logger.warning("Servis %s: nema primalaca za žurnal.", shop.name)
-                continue
 
             journal = compose_journal(period, ref, worker=None, shop_id=shop.id,
                                       scope_label=f"Servis: {shop.name}")
             if journal["totals"]["count"] == 0:
                 continue
 
+            # Sender in To, everyone else in BCC (recipients see only the sender).
+            all_recipients = sorted(set(r for r in (recipients + global_recipients) if r))
+            if sender:
+                to_addr, bcc = [sender], all_recipients
+            else:
+                to_addr, bcc = all_recipients, None
+            if not to_addr:
+                app.logger.warning("Servis %s: nema primalaca za žurnal.", shop.name)
+                continue
+
             subject = (f"{journal['period_label']} žurnal — {shop.name} "
                        f"({sr_date(journal['start'])} - {sr_date(journal['end'])})")
             html = render_template("email/journal.html", journal=journal)
             try:
-                # Single global mailbox (settings=None -> global_settings()).
-                send_email(recipients, subject, html)
+                send_email(to_addr, subject, html, bcc=bcc)
                 app.logger.info("Žurnal (%s) poslat za servis %s.", period, shop.name)
             except Exception as exc:  # noqa: BLE001
                 app.logger.warning("Žurnal za servis %s nije poslat: %s", shop.name, exc)
