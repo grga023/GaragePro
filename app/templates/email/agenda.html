@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="sr">
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; color:#222; font-size:14px;">
+  <h2 style="margin:0 0 4px">Raspored za sutra</h2>
+  <p style="margin:0 0 2px;color:#555">
+    {% if company and company.name %}{{ company.name }} — {% endif %}{{ user_name }}
+  </p>
+  <p style="margin:0 0 16px;color:#555">
+    Datum: <strong>{{ day_label }}</strong> — ukupno
+    <strong>{{ items|length }}</strong> {{ 'termin' if items|length == 1 else 'termina' }}
+  </p>
+
+  <table style="border-collapse:collapse;width:100%">
+    <thead>
+      <tr style="background:#f0f0f0">
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Vreme</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Registracija</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Vozilo</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Vlasnik</th>
+        {% if show_worker %}<th style="border:1px solid #ddd;padding:6px;text-align:left">Radnik</th>{% endif %}
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Vrsta</th>
+        <th style="border:1px solid #ddd;padding:6px;text-align:left">Napomena</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for it in items %}
+      <tr>
+        <td style="border:1px solid #ddd;padding:6px;white-space:nowrap"><strong>{{ it.time }}</strong></td>
+        <td style="border:1px solid #ddd;padding:6px">{{ it.plate }}</td>
+        <td style="border:1px solid #ddd;padding:6px">{{ it.car_desc }}</td>
+        <td style="border:1px solid #ddd;padding:6px">{{ it.owner }}{% if it.phone %}<br><span style="color:#777">{{ it.phone }}</span>{% endif %}</td>
+        {% if show_worker %}<td style="border:1px solid #ddd;padding:6px">{{ it.worker }}</td>{% endif %}
+        <td style="border:1px solid #ddd;padding:6px">
+          <span style="display:inline-block;padding:2px 8px;border-radius:10px;background:{{ it.color }};color:#fff;font-size:12px">{{ it.stype_label }}</span>
+        </td>
+        <td style="border:1px solid #ddd;padding:6px;color:#555">{{ it.note }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:20px;color:#999;font-size:12px">
+    Automatski podsetnik — GaragePro. Šalje se samo kada imate zakazane termine za sutra.
+  </p>
+</body>
+</html>
