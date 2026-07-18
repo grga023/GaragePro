@@ -152,6 +152,9 @@ class GlobalMailConfig(db.Model):
     smtp_password = db.Column(db.String(255))
     from_addr = db.Column(db.String(255))
     enabled = db.Column(db.Boolean, default=True)
+    # Master switch for the background scheduler (journals, tomorrow-reminders,
+    # nightly backup). Moderator-controlled from the app instead of an env var.
+    scheduler_enabled = db.Column(db.Boolean, default=False)
     recipients = db.Column(db.Text)  # global BCC list (comma / newline / ; separated)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)

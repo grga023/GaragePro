@@ -34,7 +34,7 @@ def _ensure_additive_columns():
     from sqlalchemy import inspect, text
     insp = inspect(db.engine)
     wanted = {
-        "global_mail_config": {"recipients": "TEXT"},
+        "global_mail_config": {"recipients": "TEXT", "scheduler_enabled": "BOOLEAN"},
         "users": {"language": "VARCHAR(5)"},
     }
     for table, columns in wanted.items():
@@ -237,8 +237,11 @@ def create_app(config_class=Config):
         except Exception as exc:  # noqa: BLE001
             app.logger.warning("db.create_all() nije uspeo pri startu: %s", exc)
 
-    # Optional background scheduler for automatic journals / backups
-    if app.config.get("ENABLE_SCHEDULER"):
+    # Background scheduler for automatic journals, tomorrow-reminders and the
+    # nightly backup. It always runs in a server process; whether each job
+    # actually does anything is controlled by the moderator's in-app toggle
+    # (GlobalMailConfig.scheduler_enabled), checked at run time.
+    if not app.config.get("TESTING"):
         from .scheduler import start_scheduler
         start_scheduler(app)
 

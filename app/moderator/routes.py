@@ -678,6 +678,7 @@ def mail_config():
             cfg.smtp_password = new_pw
         cfg.from_addr = f.get("from_addr", "").strip()
         cfg.enabled = f.get("enabled") == "on"
+        cfg.scheduler_enabled = f.get("scheduler_enabled") == "on"
 
         # Merge checked members with any extra typed-in addresses.
         picked = request.form.getlist("recipient_users")

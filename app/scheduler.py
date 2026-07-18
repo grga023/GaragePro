@@ -19,6 +19,16 @@ def _sr_day_label(d):
     return f"{_SR_WEEKDAYS[d.weekday()]}, {sr_date(d)}"
 
 
+def _automation_enabled(app) -> bool:
+    """Whether the moderator has switched on automatic tasks (in-app flag)."""
+    from .models import GlobalMailConfig
+    try:
+        cfg = GlobalMailConfig.get()
+        return bool(cfg and cfg.scheduler_enabled)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _dispatch(app, period):
     """Send the given period's shop journal to every shop that has enabled it.
 
@@ -32,6 +42,8 @@ def _dispatch(app, period):
 
     ref = date.today()
     with app.app_context():
+        if not _automation_enabled(app):
+            return
         gcfg = db.session.get(GlobalMailConfig, 1)
         global_recipients = gcfg.recipient_list() if gcfg else []
         sender = sender_address()
@@ -92,6 +104,8 @@ def _dispatch_agenda(app):
     from .email_utils import send_email, global_settings
 
     with app.app_context():
+        if not _automation_enabled(app):
+            return
         settings = global_settings()
         if not settings.get("host"):
             app.logger.info("Podsetnik (sutra): globalni SMTP nije podešen — preskačem.")
@@ -179,14 +193,16 @@ def start_scheduler(app):
     scheduler.add_job(lambda: _do_backup(app),
                       "cron", hour=2, minute=30, id="backup")
     scheduler.start()
-    app.logger.info("Scheduler pokrenut: žurnali (dnevni/nedeljni/mesečni) + "
-                    "podsetnik za sutra (21h) + dnevna rezervna kopija.")
+    app.logger.info("Scheduler aktivan (žurnali + podsetnik 21h + rezervna kopija); "
+                    "rad je uslovljen moderator prekidačem.")
     return scheduler
 
 
 def _do_backup(app):
     from .backup import create_backup
     with app.app_context():
+        if not _automation_enabled(app):
+            return
         try:
             path = create_backup()
             app.logger.info("Automatska rezervna kopija: %s", path)
