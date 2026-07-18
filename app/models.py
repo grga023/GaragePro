@@ -24,6 +24,15 @@ SERVICE_TYPES = [
 
 SERVICE_TYPE_LABELS = {k: v for k, v in SERVICE_TYPES}
 
+# Default service types seeded for every shop (key, label, badge colour). Shops
+# can add/edit their own via the moderator panel (see ServiceType below).
+DEFAULT_SERVICE_TYPES = [
+    (SERVICE_TYPE_POPRAVKE, "Popravke", "#dc3545"),
+    (SERVICE_TYPE_VULKANIZERSKI, "Vulkanizerski radovi", "#198754"),
+    (SERVICE_TYPE_MALI_SERVIS, "Mali servis", "#0d6efd"),
+]
+DEFAULT_SERVICE_TYPE_KEYS = {k for k, _l, _c in DEFAULT_SERVICE_TYPES}
+
 
 class Shop(db.Model):
     """A service shop / tenant.  Moderators create these; each admin 'owns' one."""
@@ -387,3 +396,78 @@ class Appointment(db.Model):
     @property
     def status_label(self) -> str:
         return APPOINTMENT_STATUS_LABELS.get(self.status, self.status)
+
+
+class ServiceType(db.Model):
+    """A per-shop service category (moderator-managed).
+
+    ``key`` is a stable slug stored on Service/Appointment rows; ``label`` and
+    ``color`` control how it is displayed.  Each shop has its own set (seeded
+    from the three defaults) so different shops can add their own categories.
+    """
+
+    __tablename__ = "service_types"
+    __table_args__ = (
+        db.UniqueConstraint("shop_id", "key", name="uq_service_type_shop_key"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey("shops.id"), nullable=True, index=True)
+    key = db.Column(db.String(40), nullable=False)
+    label = db.Column(db.String(80), nullable=False)
+    color = db.Column(db.String(7), nullable=False, default="#6c757d")
+    sort = db.Column(db.Integer, default=0)
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def _default_service_type_rows(shop_id):
+    """Transient (unsaved) ServiceType objects for the built-in defaults."""
+    return [
+        ServiceType(shop_id=shop_id, key=k, label=l, color=c, sort=i, active=True)
+        for i, (k, l, c) in enumerate(DEFAULT_SERVICE_TYPES)
+    ]
+
+
+def ensure_service_types(shop_id) -> None:
+    """Seed the default service types for a shop that has none yet."""
+    if shop_id is None:
+        return
+    if ServiceType.query.filter_by(shop_id=shop_id).count() == 0:
+        for row in _default_service_type_rows(shop_id):
+            db.session.add(row)
+        db.session.commit()
+
+
+def service_types_for(shop_id, include_inactive=False):
+    """Ordered ServiceType rows for a shop; falls back to (transient) defaults."""
+    rows = []
+    if shop_id is not None:
+        q = ServiceType.query.filter_by(shop_id=shop_id)
+        if not include_inactive:
+            q = q.filter_by(active=True)
+        rows = q.order_by(ServiceType.sort, ServiceType.id).all()
+    if not rows and not include_inactive:
+        rows = _default_service_type_rows(shop_id)
+    return rows
+
+
+def service_type_map(shop_id):
+    """key -> ServiceType for a shop (all rows + default fallback), for lookups."""
+    m = {}
+    if shop_id is not None:
+        for r in ServiceType.query.filter_by(shop_id=shop_id).all():
+            m[r.key] = r
+    for i, (k, l, c) in enumerate(DEFAULT_SERVICE_TYPES):
+        m.setdefault(k, ServiceType(shop_id=shop_id, key=k, label=l, color=c, sort=i))
+    return m
+
+
+def global_service_type_map():
+    """Merged key -> ServiceType across all shops (for the moderator overview)."""
+    m = {}
+    for i, (k, l, c) in enumerate(DEFAULT_SERVICE_TYPES):
+        m[k] = ServiceType(shop_id=None, key=k, label=l, color=c, sort=i)
+    for r in ServiceType.query.order_by(ServiceType.shop_id, ServiceType.sort).all():
+        m[r.key] = r
+    return m

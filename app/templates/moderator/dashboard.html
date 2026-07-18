@@ -133,7 +133,7 @@
           <tbody>
           {% for t in type_stats %}
             <tr{% if filter_type == t.key %} class="table-active"{% endif %}>
-              <td><a href="?period={{ period }}&service_type={{ t.key }}" class="badge badge-stype-{{ t.key }} text-decoration-none">{{ t.label }}</a></td>
+              <td><a href="?period={{ period }}&service_type={{ t.key }}" class="badge text-decoration-none" style="background-color:{{ t.color if t.color else SERVICE_TYPE_COLORS.get(t.key, '#6c757d') }};color:#fff">{{ t.label }}</a></td>
               <td class="money">{{ t.count }}</td>
               <td class="money">{{ t.revenue | currency }}</td>
               <td class="money text-success">{{ t.profit | currency }}</td>
@@ -236,7 +236,7 @@
       {% for s in recent %}
         <tr>
           <td class="text-nowrap">{{ s.date | srdate }}</td>
-          <td><a href="?period={{ period }}&service_type={{ s.service_type }}" class="badge badge-stype-{{ s.service_type }} text-decoration-none">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</a></td>
+          <td><a href="?period={{ period }}&service_type={{ s.service_type }}" class="badge text-decoration-none" style="background-color:{{ SERVICE_TYPE_COLORS.get(s.service_type, '#6c757d') }};color:#fff">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</a></td>
           <td class="d-none d-md-table-cell small">{{ s.car.shop.name if s.car.shop else '-' }}</td>
           <td><span class="plate-badge">{{ s.car.plate }}</span></td>
           <td class="d-none d-lg-table-cell">{{ s.car.description }}</td>

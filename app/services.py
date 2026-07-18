@@ -155,7 +155,7 @@ def list_services():
         q = q.join(Car)
         joined = True
         q = q.filter(Car.plate.ilike(f"%{_normalise_plate(plate)}%"))
-    if filter_type and filter_type in SERVICE_TYPE_LABELS:
+    if filter_type:
         q = q.filter(Service.service_type == filter_type)
 
     page = request.args.get("page", 1, type=int)
@@ -178,8 +178,13 @@ def _apply_service_form(service: Service, form) -> None:
     service.mileage = _to_int(form.get("mileage"))
     service.labor_price = _to_float(form.get("labor_price"))
     service.labor_description = form.get("labor_description", "").strip()
-    st = form.get("service_type", SERVICE_TYPE_POPRAVKE)
-    service.service_type = st if st in SERVICE_TYPE_LABELS else SERVICE_TYPE_POPRAVKE
+    from .models import service_type_map, service_types_for
+    st = form.get("service_type", "")
+    if st in service_type_map(current_user.shop_id):
+        service.service_type = st
+    else:
+        active = service_types_for(current_user.shop_id)
+        service.service_type = active[0].key if active else SERVICE_TYPE_POPRAVKE
 
 
 def _rebuild_parts(service: Service, form) -> None:

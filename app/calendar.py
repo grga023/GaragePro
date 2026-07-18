@@ -21,6 +21,7 @@ from .models import (
     SERVICE_TYPES, SERVICE_TYPE_LABELS, SERVICE_TYPE_POPRAVKE,
     APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABELS,
     APPOINTMENT_SCHEDULED, ROLE_MODERATOR,
+    service_types_for, service_type_map,
 )
 from .security import scoped_query
 
@@ -78,7 +79,10 @@ def _parse_time(value, fallback):
         return fallback
 
 
-def _event_dict(a: Appointment) -> dict:
+def _event_dict(a: Appointment, tmap=None) -> dict:
+    st = tmap.get(a.service_type) if tmap else None
+    stype_label = st.label if st else SERVICE_TYPE_LABELS.get(a.service_type, a.service_type)
+    stype_color = st.color if st else "#6c757d"
     return {
         "id": a.id,
         "date": a.start_at.date().isoformat(),
@@ -92,7 +96,8 @@ def _event_dict(a: Appointment) -> dict:
         "worker": a.worker.full_name if a.worker else "",
         "worker_id": a.worker_id,
         "service_type": a.service_type,
-        "service_type_label": SERVICE_TYPE_LABELS.get(a.service_type, a.service_type),
+        "service_type_label": stype_label,
+        "service_type_color": stype_color,
         "status": a.status,
         "status_label": APPOINTMENT_STATUS_LABELS.get(a.status, a.status),
         "note": a.note or "",
@@ -145,7 +150,8 @@ def events():
             q = q.filter(Appointment.worker_id == wid)
 
     appts = q.order_by(Appointment.start_at).all()
-    return jsonify([_event_dict(a) for a in appts])
+    tmap = service_type_map(current_user.shop_id)
+    return jsonify([_event_dict(a, tmap) for a in appts])
 
 
 # ---------------------------------------------------------------------------
@@ -279,11 +285,12 @@ def set_status(appointment_id):
 # ---------------------------------------------------------------------------
 def _render_form(appt):
     prefill_date = _parse_date(request.args.get("date", ""), date.today())
+    active_types = service_types_for(current_user.shop_id)
     return render_template(
         "calendar/form.html",
         appointment=appt,
         workers=_shop_workers(),
-        service_types=SERVICE_TYPES,
+        service_types=[(t.key, t.label) for t in active_types],
         statuses=APPOINTMENT_STATUSES,
         fuel_types=FUEL_TYPES,
         prefill_date=prefill_date.isoformat(),
@@ -302,7 +309,7 @@ def _apply_appointment_form(appt: Appointment, form) -> None:
         appt.end_at = datetime.combine(d, end_t)
 
     st = form.get("service_type", SERVICE_TYPE_POPRAVKE)
-    appt.service_type = st if st in SERVICE_TYPE_LABELS else SERVICE_TYPE_POPRAVKE
+    appt.service_type = st if st in service_type_map(current_user.shop_id) else SERVICE_TYPE_POPRAVKE
     appt.note = form.get("note", "").strip()
 
     # Status (only meaningful when editing).

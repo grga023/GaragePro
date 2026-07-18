@@ -43,7 +43,7 @@
       {% for s in services %}
         <tr>
           <td class="text-nowrap">{{ s.date | srdate }}</td>
-          <td><span class="badge badge-stype-{{ s.service_type }}">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</span></td>
+          <td><span class="badge" style="background-color:{{ SERVICE_TYPE_COLORS.get(s.service_type, '#6c757d') }};color:#fff">{{ SERVICE_TYPE_LABELS.get(s.service_type, s.service_type) }}</span></td>
           {% if current_user.is_moderator %}<td class="small">{{ s.car.shop.name if s.car.shop else '-' }}</td>{% endif %}
           <td><span class="plate-badge">{{ s.car.plate }}</span></td>
           <td class="d-none d-md-table-cell">{{ s.car.description }}</td>

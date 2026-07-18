@@ -14,9 +14,11 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..models import (
-    Shop, User, Car, Service, Part, EmailConfig, GlobalMailConfig,
+    Shop, User, Car, Service, Part, EmailConfig, GlobalMailConfig, ServiceType,
+    Appointment,
     ROLE_ADMIN, ROLE_MODERATOR, ROLE_WORKER,
-    SERVICE_TYPES, SERVICE_TYPE_LABELS,
+    SERVICE_TYPES, SERVICE_TYPE_LABELS, DEFAULT_SERVICE_TYPE_KEYS,
+    ensure_service_types, service_types_for, global_service_type_map,
 )
 from ..security import moderator_required
 from ..utils import save_image, period_range, SR_MONTHS
@@ -80,8 +82,11 @@ def dashboard():
     today_services = [s for s in all_services if s.date == today]
     period_services = [s for s in all_services if period_start <= s.date <= period_end]
 
+    # Merged service-type map across all shops (labels + colours).
+    tmap = global_service_type_map()
+
     # Apply service type filter for filtered stats
-    if filter_type and filter_type in SERVICE_TYPE_LABELS:
+    if filter_type and filter_type in tmap:
         filtered_services = [s for s in period_services if s.service_type == filter_type]
     else:
         filtered_services = period_services
@@ -106,12 +111,16 @@ def dashboard():
     by_type = {}
     for s in period_services:
         by_type.setdefault(s.service_type, []).append(s)
+    present_types = {s.service_type for s in period_services}
     type_stats = []
-    for key, label in SERVICE_TYPES:
+    for key, st in tmap.items():
+        if key not in DEFAULT_SERVICE_TYPE_KEYS and key not in present_types:
+            continue
         svcs = by_type.get(key, [])
         type_stats.append({
             "key": key,
-            "label": label,
+            "label": st.label,
+            "color": st.color,
             "count": len(svcs),
             "revenue": sum(s.total_full for s in svcs),
             "profit": sum(s.total_profit for s in svcs),
@@ -165,7 +174,7 @@ def dashboard():
 
     # Recent services (filtered by type if selected)
     recent_q = Service.query
-    if filter_type and filter_type in SERVICE_TYPE_LABELS:
+    if filter_type and filter_type in tmap:
         recent_q = recent_q.filter(Service.service_type == filter_type)
     recent = recent_q.order_by(
         Service.date.desc(), Service.id.desc()
@@ -240,6 +249,9 @@ def dashboard():
         period=period, period_label=period_label,
         period_start=period_start, period_end=period_end,
         filter_type=filter_type, alerts=alerts,
+        SERVICE_TYPES=[(k, st.label) for k, st in tmap.items()],
+        SERVICE_TYPE_LABELS={k: st.label for k, st in tmap.items()},
+        SERVICE_TYPE_COLORS={k: st.color for k, st in tmap.items()},
     )
 
 
@@ -285,6 +297,7 @@ def new_shop():
 
         db.session.add(shop)
         db.session.commit()
+        ensure_service_types(shop.id)
         flash(f'Servis "{shop.name}" je kreiran.', "success")
         return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
 
@@ -296,6 +309,7 @@ def new_shop():
 @moderator_required
 def shop_detail(shop_id):
     shop = db.session.get(Shop, shop_id) or abort(404)
+    ensure_service_types(shop.id)
     users = User.query.filter_by(shop_id=shop.id).order_by(User.full_name).all()
     cars = Car.query.filter_by(shop_id=shop.id).order_by(Car.owner_name).all()
     services = (Service.query.filter_by(shop_id=shop.id)
@@ -305,9 +319,112 @@ def shop_detail(shop_id):
         (User.shop_id.is_(None)) | (User.shop_id == shop.id),
         User.role != ROLE_MODERATOR,
     ).order_by(User.full_name).all()
+    service_type_rows = service_types_for(shop.id, include_inactive=True)
     return render_template("moderator/shop_detail.html",
                            shop=shop, users=users, cars=cars,
-                           services=services, all_users=all_users)
+                           services=services, all_users=all_users,
+                           service_type_rows=service_type_rows)
+
+
+# ---------------------------------------------------------------------------
+# Per-shop service types (moderator-managed)
+# ---------------------------------------------------------------------------
+def _slugify_service_type(label: str) -> str:
+    trans = str.maketrans("čćžšđČĆŽŠĐ", "cczsdCCZSD")
+    s = label.translate(trans).lower()
+    slug = "".join(ch if ch.isalnum() else "_"
+                   for ch in s if ch.isalnum() or ch in " -_/")
+    while "__" in slug:
+        slug = slug.replace("__", "_")
+    return slug.strip("_") or "tip"
+
+
+def _valid_color(value: str) -> str:
+    v = (value or "").strip()
+    if len(v) == 7 and v[0] == "#" and all(c in "0123456789abcdefABCDEF" for c in v[1:]):
+        return v
+    return "#6c757d"
+
+
+@moderator_bp.route("/shop/<int:shop_id>/service-type/add", methods=["POST"])
+@login_required
+@moderator_required
+def add_service_type(shop_id):
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    ensure_service_types(shop.id)
+    label = request.form.get("label", "").strip()
+    if not label:
+        flash("Naziv vrste servisa je obavezan.", "danger")
+        return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
+
+    key = _slugify_service_type(label)
+    base, i = key, 2
+    while ServiceType.query.filter_by(shop_id=shop.id, key=key).first():
+        key = f"{base}_{i}"
+        i += 1
+    max_sort = (db.session.query(func.max(ServiceType.sort))
+                .filter_by(shop_id=shop.id).scalar()) or 0
+    st = ServiceType(shop_id=shop.id, key=key, label=label,
+                     color=_valid_color(request.form.get("color")),
+                     sort=max_sort + 1, active=True)
+    db.session.add(st)
+    db.session.commit()
+    flash(f"Vrsta servisa „{label}“ je dodata.", "success")
+    return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
+
+
+@moderator_bp.route("/shop/<int:shop_id>/service-type/<int:st_id>/edit", methods=["POST"])
+@login_required
+@moderator_required
+def edit_service_type(shop_id, st_id):
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    st = db.session.get(ServiceType, st_id) or abort(404)
+    if st.shop_id != shop.id:
+        abort(404)
+    label = request.form.get("label", "").strip()
+    if label:
+        st.label = label
+    st.color = _valid_color(request.form.get("color", st.color))
+    db.session.commit()
+    flash("Vrsta servisa je ažurirana.", "success")
+    return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
+
+
+@moderator_bp.route("/shop/<int:shop_id>/service-type/<int:st_id>/toggle", methods=["POST"])
+@login_required
+@moderator_required
+def toggle_service_type(shop_id, st_id):
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    st = db.session.get(ServiceType, st_id) or abort(404)
+    if st.shop_id != shop.id:
+        abort(404)
+    st.active = not st.active
+    db.session.commit()
+    flash(f"Vrsta „{st.label}“ je {'aktivirana' if st.active else 'sakrivena'}.",
+          "success")
+    return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
+
+
+@moderator_bp.route("/shop/<int:shop_id>/service-type/<int:st_id>/delete", methods=["POST"])
+@login_required
+@moderator_required
+def delete_service_type(shop_id, st_id):
+    shop = db.session.get(Shop, shop_id) or abort(404)
+    st = db.session.get(ServiceType, st_id) or abort(404)
+    if st.shop_id != shop.id:
+        abort(404)
+    used = (Service.query.filter_by(shop_id=shop.id, service_type=st.key).count()
+            + Appointment.query.filter_by(shop_id=shop.id, service_type=st.key).count())
+    if used:
+        st.active = False
+        db.session.commit()
+        flash(f"Vrsta „{st.label}“ se koristi u {used} zapisa — sakrivena umesto brisanja.",
+              "warning")
+    else:
+        db.session.delete(st)
+        db.session.commit()
+        flash(f"Vrsta „{st.label}“ je obrisana.", "info")
+    return redirect(url_for("moderator.shop_detail", shop_id=shop.id))
 
 
 @moderator_bp.route("/shop/<int:shop_id>/edit", methods=["GET", "POST"])
@@ -496,10 +613,11 @@ def dashboard_export():
 
     filter_type = request.args.get("service_type", "")
     q = Service.query.filter(Service.date.between(period_start, period_end))
-    if filter_type and filter_type in SERVICE_TYPE_LABELS:
+    if filter_type:
         q = q.filter(Service.service_type == filter_type)
     services = q.order_by(Service.date.desc()).all()
 
+    tmap = global_service_type_map()
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["Datum", "Vrsta", "Radnja", "Registracija", "Vozilo", "Vlasnik",
@@ -510,8 +628,9 @@ def dashboard_export():
         if s.shop_id:
             shop = Shop.query.get(s.shop_id)
             shop_name = shop.name if shop else ""
+        _st = tmap.get(s.service_type)
         w.writerow([
-            s.date.isoformat(), SERVICE_TYPE_LABELS.get(s.service_type, ""),
+            s.date.isoformat(), _st.label if _st else s.service_type,
             shop_name, s.car.plate, s.car.description, s.car.owner_name,
             s.worker.full_name,
             f"{s.parts_total_full:.2f}", f"{s.parts_total_cost:.2f}",

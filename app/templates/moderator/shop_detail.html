@@ -89,6 +89,78 @@
   </div>
 </div>
 
+{# ---- Service types ---- #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🏷️ Vrste servisa</span>
+    <span class="text-muted small">Specifično za ovaj servis</span>
+  </div>
+  <div class="card-body">
+    <table class="table table-sm align-middle mb-3">
+      <thead class="table-light">
+        <tr><th>Naziv</th><th>Boja</th><th>Status</th><th class="text-end">Radnje</th></tr>
+      </thead>
+      <tbody>
+      {% for st in service_type_rows %}
+        <tr class="{{ '' if st.active else 'opacity-50' }}">
+          <td>
+            <form method="post" action="{{ url_for('moderator.edit_service_type', shop_id=shop.id, st_id=st.id) }}"
+                  class="row g-1 align-items-center flex-nowrap" style="max-width:420px">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col">
+                <input type="text" name="label" value="{{ st.label }}" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-auto">
+                <input type="color" name="color" value="{{ st.color }}" class="form-control form-control-color form-control-sm" title="Boja">
+              </div>
+              <div class="col-auto">
+                <button class="btn btn-sm btn-outline-primary" title="Sačuvaj">💾</button>
+              </div>
+            </form>
+          </td>
+          <td><span class="badge" style="background-color:{{ st.color }};color:#fff">{{ st.label }}</span></td>
+          <td>
+            {% if st.active %}<span class="badge bg-success">Aktivna</span>
+            {% else %}<span class="badge bg-secondary">Sakrivena</span>{% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            <form method="post" action="{{ url_for('moderator.toggle_service_type', shop_id=shop.id, st_id=st.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-secondary" title="{{ 'Sakrij' if st.active else 'Prikaži' }}">
+                {{ '🙈' if st.active else '👁️' }}
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('moderator.delete_service_type', shop_id=shop.id, st_id=st.id) }}" class="d-inline"
+                  onsubmit="return confirm('Obrisati vrstu „{{ st.label }}“? Ako se koristi, biće samo sakrivena.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" title="Obriši">🗑️</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted text-center">Nema vrsta servisa.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    {# Add service type #}
+    <form method="post" action="{{ url_for('moderator.add_service_type', shop_id=shop.id) }}" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-5">
+        <label class="form-label small">Nova vrsta servisa</label>
+        <input type="text" name="label" class="form-control form-control-sm" placeholder="npr. Auto-elektrika" required>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small">Boja</label>
+        <input type="color" name="color" value="#0d6efd" class="form-control form-control-color form-control-sm">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-success w-100">➕ Dodaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {# ---- Cars ---- #}
 <div class="card mb-4">
   <div class="card-header">🚗 Vozila ({{ cars | length }})</div>

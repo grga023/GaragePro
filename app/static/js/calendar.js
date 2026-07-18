@@ -22,11 +22,6 @@
     'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
   var WEEK_SHORT = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned'];
   var WEEK_FULL = ['ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota', 'nedelja'];
-  var STYPE_CLASS = {
-    popravke: 'badge-stype-popravke',
-    vulkanizerski: 'badge-stype-vulkanizerski',
-    mali_servis: 'badge-stype-mali_servis'
-  };
   var PALETTE = ['#0d6efd', '#198754', '#dc3545', '#6f42c1', '#fd7e14',
     '#20c997', '#d63384', '#0dcaf0'];
 
@@ -209,7 +204,9 @@
     var timeEl = document.createElement('strong');
     timeEl.textContent = ev.start_time + '–' + ev.end_time;
     var badge = document.createElement('span');
-    badge.className = 'badge ' + (STYPE_CLASS[ev.service_type] || 'bg-secondary');
+    badge.className = 'badge';
+    badge.style.backgroundColor = ev.service_type_color || '#6c757d';
+    badge.style.color = '#fff';
     badge.textContent = ev.service_type_label;
     row.appendChild(timeEl);
     row.appendChild(badge);

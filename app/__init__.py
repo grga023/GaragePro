@@ -85,12 +85,20 @@ def create_app(config_class=Config):
     # ---- Internationalisation (Serbian default, English optional) --------
     def _select_locale():
         from flask_login import current_user
-        from flask import session
-        if current_user.is_authenticated:
-            lang = getattr(current_user, "language", None)
-            if lang in ("sr", "en"):
-                return lang
-        return session.get("lang", app.config.get("BABEL_DEFAULT_LOCALE", "sr"))
+        from flask import session, has_request_context
+        default = app.config.get("BABEL_DEFAULT_LOCALE", "sr")
+        # Background tasks (scheduler e-mails) render templates without a request
+        # context, where current_user/session are unavailable.
+        if not has_request_context():
+            return default
+        try:
+            if current_user.is_authenticated:
+                lang = getattr(current_user, "language", None)
+                if lang in ("sr", "en"):
+                    return lang
+        except Exception:  # noqa: BLE001
+            return default
+        return session.get("lang", default)
 
     babel.init_app(app, locale_selector=_select_locale)
 
@@ -142,14 +150,31 @@ def create_app(config_class=Config):
     def inject_globals():
         company = db.session.get(models.Company, 1)
         from flask_babel import get_locale
+
+        # Shop-scoped service types (labels/colours). Falls back to the built-in
+        # defaults for moderators (no shop), anonymous visitors, and background
+        # e-mail rendering (no request context).
+        try:
+            shop_id = current_user.shop_id if getattr(current_user, "is_authenticated", False) else None
+            active = models.service_types_for(shop_id)
+            tmap = models.service_type_map(shop_id)
+            stypes = [(t.key, t.label) for t in active]
+            slabels = {k: v.label for k, v in tmap.items()}
+            scolors = {k: v.color for k, v in tmap.items()}
+        except Exception:  # noqa: BLE001 - DB/ctx may be unavailable
+            stypes = SERVICE_TYPES
+            slabels = SERVICE_TYPE_LABELS
+            scolors = {k: c for k, _l, c in models.DEFAULT_SERVICE_TYPES}
+
         return {
             "company": company,
             "FUEL_LABELS": utils.FUEL_LABELS,
             "ROLE_LABELS": utils.ROLE_LABELS,
             "PERIOD_LABELS": utils.PERIOD_LABELS,
             "currency_code": app.config.get("CURRENCY", "RSD"),
-            "SERVICE_TYPES": SERVICE_TYPES,
-            "SERVICE_TYPE_LABELS": SERVICE_TYPE_LABELS,
+            "SERVICE_TYPES": stypes,
+            "SERVICE_TYPE_LABELS": slabels,
+            "SERVICE_TYPE_COLORS": scolors,
             "APP_ENV": app.config.get("APP_ENV", "prod"),
             "ASSET_VERSION": _asset_version(app),
             "current_locale": str(get_locale() or "sr"),

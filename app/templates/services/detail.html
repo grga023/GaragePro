@@ -5,7 +5,7 @@
   <div>
     <h4 class="mb-0">Servis — {{ service.date | srdate }}</h4>
     <span class="plate-badge">{{ car.plate }}</span>
-    <span class="badge badge-stype-{{ service.service_type }}">{{ SERVICE_TYPE_LABELS.get(service.service_type, service.service_type) }}</span>
+    <span class="badge" style="background-color:{{ SERVICE_TYPE_COLORS.get(service.service_type, '#6c757d') }};color:#fff">{{ SERVICE_TYPE_LABELS.get(service.service_type, service.service_type) }}</span>
     <span class="text-muted">{{ car.description }} — {{ car.owner_name }}</span>
   </div>
   <div class="detail-actions">

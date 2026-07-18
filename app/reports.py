@@ -117,7 +117,7 @@ def _services_in_range(start, end, worker, shop_id=None, service_type=None):
         q = q.filter(Service.shop_id == shop_id)
     if worker is not None:
         q = q.filter(Service.worker_id == worker.id)
-    if service_type and service_type in SERVICE_TYPE_LABELS:
+    if service_type:
         q = q.filter(Service.service_type == service_type)
     return (q.order_by(Service.date.desc(), Service.id.desc())
              .options(selectinload(Service.parts))
@@ -316,11 +316,15 @@ def analytics():
     for s in all_services_unfiltered:
         by_type.setdefault(s.service_type, []).append(s)
     type_stats = []
-    for key, label in SERVICE_TYPES:
-        svcs = by_type.get(key, [])
+    from .models import service_types_for, global_service_type_map
+    stypes = (global_service_type_map().values() if current_user.is_moderator
+              else service_types_for(current_user.shop_id))
+    for t in stypes:
+        svcs = by_type.get(t.key, [])
         type_stats.append({
-            "key": key,
-            "label": label,
+            "key": t.key,
+            "label": t.label,
+            "color": t.color,
             "count": len(svcs),
             "revenue": sum(s.total_full for s in svcs),
             "profit": sum(s.total_profit for s in svcs),

@@ -186,11 +186,13 @@ def dashboard():
     for s in month_services:
         by_type.setdefault(s.service_type, []).append(s)
     type_stats = []
-    for key, label in SERVICE_TYPES:
-        svcs = by_type.get(key, [])
+    from .models import service_types_for
+    for t in service_types_for(current_user.shop_id):
+        svcs = by_type.get(t.key, [])
         type_stats.append({
-            "key": key,
-            "label": label,
+            "key": t.key,
+            "label": t.label,
+            "color": t.color,
             "count": len(svcs),
             "revenue": sum(s.total_full for s in svcs),
             "profit": sum(s.total_profit for s in svcs),

@@ -126,7 +126,7 @@
           <tbody>
           {% for t in type_stats %}
             <tr>
-              <td><a href="?start={{ start.isoformat() }}&end={{ end.isoformat() }}&scope={{ scope }}&service_type={{ t.key }}" class="badge badge-stype-{{ t.key }} text-decoration-none">{{ t.label }}</a></td>
+              <td><a href="?start={{ start.isoformat() }}&end={{ end.isoformat() }}&scope={{ scope }}&service_type={{ t.key }}" class="badge text-decoration-none" style="background-color:{{ t.color if t.color else SERVICE_TYPE_COLORS.get(t.key, '#6c757d') }};color:#fff">{{ t.label }}</a></td>
               <td class="money">{{ t.count }}</td>
               <td class="money">{{ t.revenue | currency }}</td>
               <td class="money text-success">{{ t.profit | currency }}</td>
