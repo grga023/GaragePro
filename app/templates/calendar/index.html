@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Kalendar{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">📅 Kalendar</h4>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {% if current_user.is_admin and workers %}
+    <select id="cal-worker-filter" class="form-select form-select-sm" style="width:auto">
+      <option value="">Svi radnici</option>
+      {% for w in workers %}
+      <option value="{{ w.id }}">{{ w.full_name }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <a href="{{ url_for('calendar.new', date=initial_date) }}" class="btn btn-primary btn-sm">➕ Zakaži termin</a>
+  </div>
+</div>
+
+<div id="calendar"
+     data-events-url="{{ url_for('calendar.events') }}"
+     data-new-url="{{ url_for('calendar.new') }}"
+     data-is-admin="{{ 1 if current_user.is_admin else 0 }}"
+     data-initial-date="{{ initial_date }}">
+  <div class="cal-toolbar">
+    <div class="btn-group btn-group-sm" role="group">
+      <button type="button" class="btn btn-outline-secondary" data-cal="prev" aria-label="Prethodni mesec">‹</button>
+      <button type="button" class="btn btn-outline-secondary" data-cal="today">Danas</button>
+      <button type="button" class="btn btn-outline-secondary" data-cal="next" aria-label="Sledeći mesec">›</button>
+    </div>
+    <div class="cal-title" data-cal="title"></div>
+    <span class="cal-loading d-none" data-cal="loading">…</span>
+  </div>
+  <div class="cal-weekdays" data-cal="weekdays"></div>
+  <div class="cal-grid" data-cal="grid"></div>
+</div>
+
+{# ── Day detail modal: the tapped day "gets bigger" with every booking ── #}
+<div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-cal="day-title">Dan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+      </div>
+      <div class="modal-body" data-cal="day-body"></div>
+      <div class="modal-footer">
+        <a class="btn btn-primary" data-cal="day-add" href="#">➕ Dodaj termin za ovaj dan</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>window.CSRF_TOKEN = "{{ csrf_token() }}";</script>
+<script src="{{ url_for('static', filename='js/calendar.js') }}?v={{ ASSET_VERSION }}"></script>
+{% endblock %}

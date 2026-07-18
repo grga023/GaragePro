@@ -103,12 +103,13 @@ def create_app(config_class=Config):
     from .main import main_bp
     from .cars import cars_bp
     from .services import services_bp
+    from .calendar import calendar_bp
     from .reports import reports_bp
     from .printing import print_bp
     from .backup import backup_bp
     from .moderator.routes import moderator_bp
 
-    for bp in (auth_bp, main_bp, cars_bp, services_bp, reports_bp, print_bp, backup_bp, moderator_bp):
+    for bp in (auth_bp, main_bp, cars_bp, services_bp, calendar_bp, reports_bp, print_bp, backup_bp, moderator_bp):
         app.register_blueprint(bp)
 
     # ---- Serve uploaded media (login required) --------------------------

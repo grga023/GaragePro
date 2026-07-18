@@ -60,6 +60,7 @@
         {% else %}
           {# ── Admin / Worker: service-centric navigation ── #}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('services.start') }}">➕ {{ _('Novi servis') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('calendar.index') }}">📅 {{ _('Kalendar') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('services.list_services') }}">{{ _('Servisi') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('cars.list_cars') }}">{{ _('Vozila') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('reports.index') }}">{{ _('Žurnal') }}</a></li>
@@ -121,6 +122,7 @@
   {% else %}
     <a href="{{ url_for('main.dashboard') }}"><span class="nav-icon">🏠</span>{{ _('Početna') }}</a>
     <a href="{{ url_for('services.start') }}"><span class="nav-icon">➕</span>{{ _('Novi') }}</a>
+    <a href="{{ url_for('calendar.index') }}"><span class="nav-icon">📅</span>{{ _('Kalendar') }}</a>
     <a href="{{ url_for('services.list_services') }}"><span class="nav-icon">🔧</span>{{ _('Servisi') }}</a>
     <a href="{{ url_for('reports.analytics') }}"><span class="nav-icon">📈</span>{{ _('Analitika') }}</a>
   {% endif %}

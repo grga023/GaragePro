@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Izmena termina' if appointment else 'Novi termin' }}{% endblock %}
+{% block content %}
+
+{% set is_edit = appointment is not none %}
+{% set day = appointment.start_at.strftime('%Y-%m-%d') if is_edit else prefill_date %}
+{% set start_v = appointment.start_at.strftime('%H:%M') if is_edit else '09:00' %}
+{% set end_v = appointment.end_at.strftime('%H:%M') if is_edit else '' %}
+{% set sel_worker = appointment.worker_id if is_edit else current_user.id %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">{{ '✏️ Izmena termina' if is_edit else '📅 Novi termin' }}</div>
+      <div class="card-body">
+        <form method="post"
+              action="{{ url_for('calendar.edit', appointment_id=appointment.id) if is_edit else url_for('calendar.new') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3">
+            <div class="col-6 col-md-4">
+              <label class="form-label">Datum</label>
+              <input type="date" name="date" class="form-control" value="{{ day }}" required>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label">Od</label>
+              <input type="time" name="start_time" class="form-control" value="{{ start_v }}" required>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label">Do <span class="text-muted small">(opciono)</span></label>
+              <input type="time" name="end_time" class="form-control" value="{{ end_v }}">
+            </div>
+
+            {% if current_user.is_admin %}
+            <div class="col-12 col-md-6">
+              <label class="form-label">Radnik</label>
+              <select name="worker_id" class="form-select">
+                {% for w in workers %}
+                <option value="{{ w.id }}" {{ 'selected' if w.id == sel_worker }}>{{ w.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Vrsta servisa</label>
+              <select name="service_type" class="form-select">
+                {% for key, label in service_types %}
+                <option value="{{ key }}"
+                  {{ 'selected' if is_edit and appointment.service_type == key }}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <hr>
+
+          {% if is_edit %}
+            {# Car is fixed for an existing appointment. #}
+            <div class="mb-3">
+              <label class="form-label">Vozilo</label>
+              <div class="p-2 border rounded bg-body-tertiary">
+                <span class="plate-badge">{{ appointment.car.plate }}</span>
+                <span class="ms-2">{{ appointment.car.description }}</span>
+                <span class="text-muted d-block small">{{ appointment.car.owner_name }}
+                  {% if appointment.car.phone %}· {{ appointment.car.phone }}{% endif %}</span>
+              </div>
+            </div>
+            <div class="mb-3 col-md-6">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                {% for key, label in statuses %}
+                <option value="{{ key }}" {{ 'selected' if appointment.status == key }}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% else %}
+            {# Plate-first: existing car is auto-filled; otherwise it is created. #}
+            <div class="mb-3">
+              <label class="form-label">Registarska oznaka</label>
+              <input type="text" id="plate" name="plate" class="form-control text-uppercase"
+                     placeholder="BG123AB" autocomplete="off" required>
+              <div id="car-found" class="form-text text-success d-none"></div>
+              <div class="form-text">Ako vozilo ne postoji, biće kreirano iz podataka ispod.</div>
+            </div>
+
+            <div id="car-fields">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Vlasnik</label>
+                  <input type="text" name="owner_name" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Telefon</label>
+                  <input type="text" name="phone" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Marka</label>
+                  <input type="text" name="brand" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Model</label>
+                  <input type="text" name="model" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label">Motor</label>
+                  <input type="text" name="engine" class="form-control" placeholder="2.0" autocomplete="off">
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label">Gorivo</label>
+                  <select name="fuel_type" class="form-select">
+                    <option value=""></option>
+                    {% for f in fuel_types %}
+                    <option value="{{ f }}">{{ FUEL_LABELS.get(f, f) }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label">Godište</label>
+                  <input type="number" name="year" class="form-control" min="1950" max="2100" autocomplete="off">
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <div class="mb-3 mt-3">
+            <label class="form-label">Napomena</label>
+            <textarea name="note" class="form-control" rows="2"
+                      placeholder="Opis planiranog rada…">{{ appointment.note if is_edit else '' }}</textarea>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a href="{{ url_for('calendar.index', date=day) }}" class="btn btn-outline-secondary">Otkaži</a>
+            <button type="submit" class="btn btn-primary">{{ '💾 Sačuvaj' if is_edit else '📅 Zakaži' }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% if not appointment %}
+<script>
+(function () {
+  var plate = document.getElementById('plate');
+  if (!plate) return;
+  var lookupUrl = "{{ url_for('calendar.lookup') }}";
+  var found = document.getElementById('car-found');
+
+  function setVal(name, value) {
+    var el = document.querySelector('[name="' + name + '"]');
+    if (el && !el.value) el.value = value || '';
+  }
+
+  function check() {
+    var v = plate.value.replace(/\s+/g, '').toUpperCase();
+    plate.value = v;
+    if (v.length < 3) { found.classList.add('d-none'); return; }
+    fetch(lookupUrl + '?plate=' + encodeURIComponent(v))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.found) {
+          setVal('owner_name', d.car.owner_name);
+          setVal('phone', d.car.phone);
+          setVal('brand', d.car.brand);
+          setVal('model', d.car.model);
+          setVal('engine', d.car.engine);
+          setVal('year', d.car.year);
+          var fuel = document.querySelector('[name="fuel_type"]');
+          if (fuel && !fuel.value) fuel.value = d.car.fuel_type || '';
+          found.textContent = '✓ Postojeće vozilo: ' + d.car.description +
+            (d.car.owner_name ? ' — ' + d.car.owner_name : '');
+          found.classList.remove('d-none');
+        } else {
+          found.classList.add('d-none');
+        }
+      })
+      .catch(function () {});
+  }
+
+  plate.addEventListener('blur', check);
+})();
+</script>
+{% endif %}
+{% endblock %}

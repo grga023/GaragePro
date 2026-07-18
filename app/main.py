@@ -10,7 +10,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from .extensions import db
-from .models import Company, Car, Service, Shop, SERVICE_TYPES, SERVICE_TYPE_LABELS
+from .models import (
+    Company, Car, Service, Shop, Appointment, APPOINTMENT_CANCELLED,
+    SERVICE_TYPES, SERVICE_TYPE_LABELS,
+)
 from .security import admin_required, scoped_query
 from .utils import save_image, period_range
 from .landing_content import LANDING
@@ -195,6 +198,19 @@ def dashboard():
 
     recent = q.order_by(Service.date.desc(), Service.id.desc()).limit(10).all()
 
+    # ── Appointments planned for today (calendar) ──
+    from datetime import datetime, time as _time
+    appt_q = scoped_query(Appointment)
+    if not current_user.is_admin:
+        appt_q = appt_q.filter(Appointment.worker_id == current_user.id)
+    today_appointments = (
+        appt_q.filter(Appointment.status != APPOINTMENT_CANCELLED)
+        .filter(Appointment.start_at >= datetime.combine(today_start, _time.min))
+        .filter(Appointment.start_at <= datetime.combine(today_start, _time.max))
+        .order_by(Appointment.start_at)
+        .all()
+    )
+
     alerts = []
     if stats["today_count"] == 0:
         alerts.append({"type": "warning", "msg": "⚠️ Danas nema nijednog servisa."})
@@ -205,7 +221,8 @@ def dashboard():
         alerts.append({"type": "info", "msg": f"📊 Prosečno {avg_daily:.1f} servisa dnevno ovog meseca. Mesečni profit: {stats['month_profit']:.0f} RSD."})
 
     return render_template("dashboard.html", stats=stats, recent=recent,
-                           type_stats=type_stats, alerts=alerts)
+                           type_stats=type_stats, alerts=alerts,
+                           today_appointments=today_appointments)
 
 
 @main_bp.route("/setup", methods=["GET", "POST"])

@@ -334,3 +334,56 @@ class Part(db.Model):
     @property
     def line_profit(self) -> float:
         return self.line_full - self.line_cost
+
+
+APPOINTMENT_SCHEDULED = "scheduled"
+APPOINTMENT_DONE = "done"
+APPOINTMENT_CANCELLED = "cancelled"
+
+APPOINTMENT_STATUSES = [
+    (APPOINTMENT_SCHEDULED, "Zakazano"),
+    (APPOINTMENT_DONE, "Završeno"),
+    (APPOINTMENT_CANCELLED, "Otkazano"),
+]
+APPOINTMENT_STATUS_LABELS = {k: v for k, v in APPOINTMENT_STATUSES}
+
+
+class Appointment(db.Model):
+    """A booked calendar slot: a worker plans work on a car at a given time.
+
+    Owners/admins see every appointment in their shop; a worker only sees their
+    own.  Deleting a car cascades to its appointments.
+    """
+
+    __tablename__ = "appointments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey("shops.id"), nullable=True, index=True)
+    car_id = db.Column(db.Integer, db.ForeignKey("cars.id"), nullable=False)
+    worker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    start_at = db.Column(db.DateTime, nullable=False, index=True)
+    end_at = db.Column(db.DateTime, nullable=False)
+    service_type = db.Column(db.String(30), nullable=False, default=SERVICE_TYPE_POPRAVKE)
+    note = db.Column(db.Text)
+    status = db.Column(db.String(20), nullable=False, default=APPOINTMENT_SCHEDULED, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    car = db.relationship(
+        "Car",
+        backref=db.backref("appointments", lazy=True,
+                           cascade="all, delete-orphan"),
+    )
+    worker = db.relationship("User", foreign_keys=[worker_id], backref="appointments")
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    @property
+    def duration_min(self) -> int:
+        if self.start_at and self.end_at:
+            return int((self.end_at - self.start_at).total_seconds() // 60)
+        return 0
+
+    @property
+    def status_label(self) -> str:
+        return APPOINTMENT_STATUS_LABELS.get(self.status, self.status)
